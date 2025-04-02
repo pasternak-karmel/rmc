@@ -97,7 +97,6 @@ function generateCSV(
   medicalHistory: any[],
   labResults: any[],
   vitalSigns: any[],
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   treatments: any[]
 ) {
   let csv = "DONNÉES DU PATIENT\n";
@@ -155,15 +154,15 @@ function generateCSV(
 
   csv += "TRAITEMENTS\n";
   csv += `Médicament,Catégorie,Posologie,Fréquence,Date de début,Date de fin,Statut,Médecin,Notes,Interactions\n`;
-  // treatments.data.forEach((treatment) => {
-  //   csv += `${treatment.medicament},${treatment.category},${
-  //     treatment.posologie
-  //   },${treatment.frequence},${new Date(treatment.date).toLocaleDateString()},${
-  //     treatment.endDate ? new Date(treatment.endDate).toLocaleDateString() : ""
-  //   },${treatment.status},${treatment.medecin},${treatment.notes || ""},${
-  //     treatment.interactions ? "Oui" : "Non"
-  //   }\n`;
-  // });
+  treatments.forEach((treatment) => {
+    csv += `${treatment.medicament},${treatment.category},${
+      treatment.posologie
+    },${treatment.frequence},${new Date(treatment.date).toLocaleDateString()},${
+      treatment.endDate ? new Date(treatment.endDate).toLocaleDateString() : ""
+    },${treatment.status},${treatment.medecin},${treatment.notes || ""},${
+      treatment.interactions ? "Oui" : "Non"
+    }\n`;
+  });
 
   return csv;
 }
@@ -173,9 +172,7 @@ async function generatePDF(
   patient: any,
   medicalHistory: any[],
   labResults: any[],
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   vitalSigns: any[],
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   treatments: any[]
 ) {
   return new Promise<Buffer>((resolve, reject) => {
@@ -332,40 +329,41 @@ async function generatePDF(
       doc.fontSize(16).text("Traitements", { align: "center" });
       doc.moveDown();
 
-      // treatments.data.forEach((treatment, index) => {
-      //   if (index > 0) doc.moveDown(0.5);
-      //   doc
-      //     .fontSize(12)
-      //     .text(`Médicament: ${treatment.medicament} (${treatment.category})`);
-      //   doc.text(`Posologie: ${treatment.posologie}`);
-      //   doc.text(`Fréquence: ${treatment.frequence}`);
-      //   doc.text(
-      //     `Date de début: ${new Date(treatment.date).toLocaleDateString()}`
-      //   );
-      //   if (treatment.endDate)
-      //     doc.text(
-      //       `Date de fin: ${new Date(treatment.endDate).toLocaleDateString()}`
-      //     );
-      //   doc.text(`Statut: ${treatment.status}`);
-      //   doc.text(`Médecin: ${treatment.medecin}`);
-      //   if (treatment.notes) doc.text(`Notes: ${treatment.notes}`);
-      //   if (treatment.interactions)
-      //     doc
-      //       .text(`Interactions potentielles: Oui`, { continued: true })
-      //       .fillColor("red")
-      //       .text(" ⚠️");
-      //   doc.fillColor("black");
+      treatments.forEach((treatment, index) => {
+        if (index > 0) doc.moveDown(0.5);
+        doc
+          .fontSize(12)
+          .text(`Médicament: ${treatment.medicament} (${treatment.category})`);
+        doc.text(`Posologie: ${treatment.posologie}`);
+        doc.text(`Fréquence: ${treatment.frequence}`);
+        doc.text(
+          `Date de début: ${new Date(treatment.date).toLocaleDateString()}`
+        );
+        if (treatment.endDate)
+          doc.text(
+            `Date de fin: ${new Date(treatment.endDate).toLocaleDateString()}`
+          );
+        doc.text(`Statut: ${treatment.status}`);
+        doc.text(`Médecin: ${treatment.medecin}`);
+        if (treatment.notes) doc.text(`Notes: ${treatment.notes}`);
+        if (treatment.interactions)
+          doc
+            .text(`Interactions potentielles: Oui`, { continued: true })
+            .fillColor("red")
+            .text(" ⚠️");
+        doc.fillColor("black");
 
-      //   if (index < treatments.data.length - 1) {
-      //     doc.moveDown(0.5);
-      //     doc
-      //       .lineTo(50, doc.y)
-      //       .lineTo(doc.page.width - 50, doc.y)
-      //       .stroke();
-      //   }
-      // });
+        if (index < treatments.length - 1) {
+          doc.moveDown(0.5);
+          doc
+            .lineTo(50, doc.y)
+            .lineTo(doc.page.width - 50, doc.y)
+            .stroke();
+        }
+      });
 
       // Add footer with date
+
       const pages = doc.bufferedPageRange();
       for (let i = 0; i < pages.count; i++) {
         doc.switchToPage(i);

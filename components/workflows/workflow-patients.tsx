@@ -19,6 +19,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { useFetchWorkflowPatients } from "@/hooks/patient/use-workflow";
 import {
   AlertTriangle,
   Calendar,
@@ -32,75 +33,25 @@ interface WorkflowPatientsProps {
   workflowId: string;
 }
 
+type Patient = {
+  id: string;
+  name: string;
+  age: number;
+  stage: number;
+  lastVisit: string;
+  critical: boolean;
+  avatar: string;
+  initials: string;
+  status: string;
+  alerts: number;
+  tasks: number;
+  nextVisit: string;
+};
+
 export function WorkflowPatients({ workflowId }: WorkflowPatientsProps) {
   console.log(workflowId);
-  const patients = [
-    {
-      id: "2",
-      name: "Sophie Laurent",
-      age: 72,
-      stage: 4,
-      lastVisit: "05/04/2023",
-      nextVisit: "19/04/2023",
-      status: "critical",
-      alerts: 2,
-      tasks: 3,
-      avatar: "/placeholder.svg?height=40&width=40",
-      initials: "SL",
-    },
-    {
-      id: "5",
-      name: "Philippe Moreau",
-      age: 75,
-      stage: 5,
-      lastVisit: "01/04/2023",
-      nextVisit: "15/04/2023",
-      status: "critical",
-      alerts: 3,
-      tasks: 4,
-      avatar: "/placeholder.svg?height=40&width=40",
-      initials: "PM",
-    },
-    {
-      id: "7",
-      name: "Robert Lefebvre",
-      age: 70,
-      stage: 4,
-      lastVisit: "10/03/2023",
-      nextVisit: "10/05/2023",
-      status: "worsening",
-      alerts: 1,
-      tasks: 2,
-      avatar: "/placeholder.svg?height=40&width=40",
-      initials: "RL",
-    },
-    {
-      id: "9",
-      name: "Jeanne Dubois",
-      age: 68,
-      stage: 4,
-      lastVisit: "20/03/2023",
-      nextVisit: "20/04/2023",
-      status: "stable",
-      alerts: 0,
-      tasks: 2,
-      avatar: "/placeholder.svg?height=40&width=40",
-      initials: "JD",
-    },
-    {
-      id: "12",
-      name: "Michel Blanc",
-      age: 71,
-      stage: 4,
-      lastVisit: "25/03/2023",
-      nextVisit: "25/04/2023",
-      status: "stable",
-      alerts: 0,
-      tasks: 2,
-      avatar: "/placeholder.svg?height=40&width=40",
-      initials: "MB",
-    },
-  ];
+
+  const { data: patients } = useFetchWorkflowPatients(workflowId);
 
   return (
     <div className="rounded-md border">
@@ -117,7 +68,7 @@ export function WorkflowPatients({ workflowId }: WorkflowPatientsProps) {
           </TableRow>
         </TableHeader>
         <TableBody>
-          {patients.map((patient) => (
+          {patients?.map((patient : Patient) => (
             <TableRow key={patient.id}>
               <TableCell>
                 <div className="flex items-center gap-3">

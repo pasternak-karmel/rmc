@@ -3,26 +3,11 @@
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Appointment } from "@/types/types";
 import { Calendar, Clock, Video } from "lucide-react";
 import Link from "next/link";
 
-type Appointment = {
-  id: string;
-  patient: string;
-  patientId: string;
-  date: string;
-  time: string;
-  type: string;
-  virtual: boolean;
-  avatar: string;
-  initials: string;
-};
-
-export function UpcomingAppointments({
-  appointments,
-}: {
-  appointments: Appointment[];
-}) {
+export function UpcomingAppointments({ appointments }: { appointments: Appointment[] }) {
   return (
     <div className="space-y-4">
       {appointments.map((appointment) => (

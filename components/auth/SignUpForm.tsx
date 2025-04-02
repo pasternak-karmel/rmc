@@ -9,6 +9,8 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
+import { cn } from "@/lib/utils";
+
 import { Input } from "@/components/ui/input";
 import { LOGIN_URL } from "@/routes";
 import { RegisterSchema } from "@/schemas";
@@ -54,11 +56,20 @@ export default function SignUpForm() {
   };
 
   return (
-    <div className="max-w-md mx-auto p-6 border rounded shadow-md bg-white">
-      <h2 className="text-xl font-bold text-center mb-4">Créer un compte</h2>
+    <Form {...form}>
+      <form
+        onSubmit={form.handleSubmit(onSubmit)}
+        className={cn("flex flex-col gap-6", "w-full max-w-sm mx-auto")}
+      >
+        <div className="flex flex-col items-center gap-2 text-center">
+          <h1 className="text-2xl font-bold">Créer un compte</h1>
+          <p className="text-muted-foreground text-sm">
+          Saisissez vos coordonnées  pour vous inscrire
+          </p>
+        </div>
 
-      <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+        <div className="grid gap-6">
+          {/* Name Field */}
           <FormField
             control={form.control}
             name="name"
@@ -66,17 +77,14 @@ export default function SignUpForm() {
               <FormItem>
                 <FormLabel>Nom</FormLabel>
                 <FormControl>
-                  <Input
-                    {...field}
-                    disabled={isPending}
-                    placeholder="John Doe"
-                  />
+                  <Input {...field} placeholder="John Doe" />
                 </FormControl>
                 <FormMessage />
               </FormItem>
             )}
           />
 
+          {/* Email Field */}
           <FormField
             control={form.control}
             name="email"
@@ -84,18 +92,14 @@ export default function SignUpForm() {
               <FormItem>
                 <FormLabel>Email</FormLabel>
                 <FormControl>
-                  <Input
-                    {...field}
-                    disabled={isPending}
-                    placeholder="john.doe@example.com"
-                    type="email"
-                  />
+                  <Input {...field} placeholder="john.doe@example.com" type="email" />
                 </FormControl>
                 <FormMessage />
               </FormItem>
             )}
           />
 
+          {/* Password Field */}
           <FormField
             control={form.control}
             name="password"
@@ -103,18 +107,14 @@ export default function SignUpForm() {
               <FormItem>
                 <FormLabel>Mot de passe</FormLabel>
                 <FormControl>
-                  <Input
-                    {...field}
-                    disabled={isPending}
-                    placeholder="********"
-                    type="password"
-                  />
+                  <Input {...field} placeholder="********" type="password" />
                 </FormControl>
                 <FormMessage />
               </FormItem>
             )}
           />
 
+          {/* Confirm Password Field */}
           <FormField
             control={form.control}
             name="confirmPassword"
@@ -122,23 +122,22 @@ export default function SignUpForm() {
               <FormItem>
                 <FormLabel>Confirmer le mot de passe</FormLabel>
                 <FormControl>
-                  <Input
-                    {...field}
-                    disabled={isPending}
-                    placeholder="********"
-                    type="password"
-                  />
+                  <Input {...field} placeholder="********" type="password" />
                 </FormControl>
                 <FormMessage />
               </FormItem>
             )}
           />
 
-          <Button type="submit" disabled={isPending} className="w-full">
-            {isPending ? "Inscription en cours..." : "S'inscrire"}
+          <Button disabled={isPending} type="submit" className="w-full">
+            {isPending ? "Inscription en cours..." : "S'inscrire'"}
           </Button>
-        </form>
-      </Form>
-    </div>
+
+          <div className="text-center text-sm">
+          Vous avez déjà un compte ? <a href="/auth/sign-in" className="underline underline-offset-4">Se connecter</a>
+          </div>
+        </div>
+      </form>
+    </Form>
   );
 }

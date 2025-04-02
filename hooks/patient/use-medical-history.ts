@@ -1,7 +1,6 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { id } from "date-fns/locale";
 import { toast } from "sonner";
 
 interface MedicalRecord {
@@ -235,7 +234,9 @@ export function useUpdateMedicalRecord(patientId: string) {
       queryClient.invalidateQueries({
         queryKey: ["patients", patientId, "medical-history"],
       });
-      queryClient.invalidateQueries({ queryKey: ["medical-records", id] });
+      queryClient.invalidateQueries({
+        queryKey: ["medical-records", patientId],
+      });
       queryClient.invalidateQueries({
         queryKey: ["patients", patientId, "medical-history", "stats"],
       });

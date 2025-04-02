@@ -10,13 +10,12 @@ import {
 import { ApiError } from "@/lib/api-error";
 import { auth } from "@/lib/auth";
 import { deleteCache, deleteCacheByPattern, withCache } from "@/lib/cache";
+import { formatDate } from "@/lib/utils";
 import type {
   CreatePatientInput,
   PatientQueryParams,
   UpdatePatientInput,
 } from "@/schemas/patient";
-import { formatDistanceToNow, isToday, isYesterday } from "date-fns";
-import { fr } from "date-fns/locale";
 import { and, asc, desc, eq, ilike, inArray, like, or, sql } from "drizzle-orm";
 import { headers } from "next/headers";
 import { v4 as uuidv4 } from "uuid";
@@ -161,7 +160,7 @@ export class PatientService {
             id: infoMedical.id,
             stade: infoMedical.stade,
             status: infoMedical.status,
-            medecin: infoMedical.medecin,
+            medecin: user.name,
             dfg: infoMedical.dfg,
             previousDfg: infoMedical.previousDfg,
             proteinurie: infoMedical.proteinurie,
@@ -172,6 +171,7 @@ export class PatientService {
         })
         .from(patient)
         .leftJoin(infoMedical, eq(patient.id, infoMedical.patientId))
+        .rightJoin(user, eq(infoMedical.medecin, user.id))
         .where(eq(patient.id, id));
 
       if (!result) {
@@ -238,21 +238,21 @@ export class PatientService {
         );
       }
 
-      await db.transaction(async (tx) => {
-        await tx.insert(patient).values({
-          id: patientId,
-          firstname,
-          lastname,
-          birthdate,
-          sex,
-          email,
-          phone,
-          address,
-          createdAt: now,
-          updatedAt: now,
-        });
+      await db.insert(patient).values({
+        id: patientId,
+        firstname,
+        lastname,
+        birthdate,
+        sex,
+        email,
+        phone,
+        address,
+        createdAt: now,
+        updatedAt: now,
+      });
 
-        await tx.insert(infoMedical).values({
+      try {
+        await db.insert(infoMedical).values({
           id: uuidv4(),
           patientId,
           stade: medicalInfo.stage,
@@ -268,7 +268,7 @@ export class PatientService {
           updatedAt: now,
         });
 
-        await tx.insert(historique).values({
+        await db.insert(historique).values({
           id: uuidv4(),
           patientId,
           date: now,
@@ -279,7 +279,13 @@ export class PatientService {
           createdAt: now,
           updatedAt: now,
         });
-      });
+      } catch (error) {
+        await db.delete(patient).where(eq(patient.id, patientId));
+        if (error instanceof ApiError) {
+          throw error;
+        }
+        throw ApiError.internalServer("Failed to create patient");
+      }
 
       await deleteCacheByPattern("patients:list:*");
       await deleteCacheByPattern("dashboard:stats");
@@ -315,7 +321,7 @@ export class PatientService {
         );
       }
 
-      await db.transaction(async (tx) => {
+      try {
         const patientFields: any = {};
 
         if (data.firstname !== undefined)
@@ -330,7 +336,7 @@ export class PatientService {
 
         if (Object.keys(patientFields).length > 0) {
           patientFields.updatedAt = now;
-          await tx.update(patient).set(patientFields).where(eq(patient.id, id));
+          await db.update(patient).set(patientFields).where(eq(patient.id, id));
         }
 
         if (data.medicalInfo) {
@@ -355,7 +361,7 @@ export class PatientService {
             medicalFields.proteinurie = proteinurie;
           }
 
-          await tx
+          await db
             .update(infoMedical)
             .set(medicalFields)
             .where(eq(infoMedical.patientId, id));
@@ -383,7 +389,7 @@ export class PatientService {
               description += `Statut ${existingPatient.medicalInfo?.status} → ${status}. `;
             }
 
-            await tx.insert(historique).values({
+            await db.insert(historique).values({
               id: uuidv4(),
               patientId: id,
               date: now,
@@ -397,7 +403,10 @@ export class PatientService {
             });
           }
         }
-      });
+      } catch (error) {
+        if (error instanceof ApiError) throw error;
+        throw ApiError.internalServer("Failed to update patient information");
+      }
 
       // Invalidate cache
       await deleteCache(`patients:${id}`);
@@ -630,6 +639,17 @@ export class PatientService {
           .from(infoMedical)
           .where(eq(infoMedical.status, "critical"));
 
+        const [{ count: activeAlerts }] = await db
+          .select({ count: sql<number>`count(*)` })
+          .from(historique)
+          .where(
+            and(
+              eq(historique.type, "alert"),
+              eq(historique.isResolved, false),
+              eq(historique.alertType, "critical")
+            )
+          );
+
         // Get upcoming appointments (next 7 days)
         const nextWeek = new Date();
         nextWeek.setDate(nextWeek.getDate() + 7);
@@ -675,7 +695,7 @@ export class PatientService {
             name: sql<string>`${patient.firstname} || ' ' || ${patient.lastname}`,
             lastVisit: infoMedical.lastvisite,
             stage: infoMedical.stade,
-            age: sql<number>`14`, //TODO: Calculate age
+            age: sql<number>`extract(year from age(${patient.birthdate}))`,
             critical: eq(infoMedical.status, "critical"),
             initials: sql<string>`substring(${patient.firstname}, 1, 1) || substring(${patient.lastname}, 1, 1)`,
             avatar: sql<string>`'/placeholder.svg?height=40&width=40'`,
@@ -691,14 +711,27 @@ export class PatientService {
           lastVisit: formatDate(new Date(patient.lastVisit)),
         }));
 
-        // const alerts = await db
-        //   .select({
+        const alertData = await db
+          .select({
+            id: historique.id,
+            patient: sql<string>`${patient.firstname} || ' ' || ${patient.lastname}`,
+            patientId: historique.patientId,
+            type: historique.alertType,
+            message: historique.description,
+            date: historique.date,
+            resolved: historique.isResolved,
+          })
+          .from(historique)
+          .innerJoin(patient, eq(patient.id, historique.patientId))
+          .where(eq(historique.type, "alert"))
+          .orderBy(desc(historique.date))
+          .limit(5);
 
-        //   })
-        //   .from(patient)
-        //   .innerJoin(infoMedical, eq(patient.id, infoMedical.patientId))
-        //   .orderBy(desc(infoMedical.lastvisite))
-        //   .limit(5);
+        const alerts = alertData.map((alert, index) => ({
+          ...alert,
+          // id: index + 1,
+          date: formatDate(new Date(alert.date)),
+        }));
 
         return {
           totalPatients,
@@ -707,7 +740,32 @@ export class PatientService {
           criticalPatients,
           upcomingAppointments,
           recentPatients,
+          alerts,
         };
+      },
+      300
+    );
+  }
+
+  /**
+   * get users
+   * @returns
+   */
+  static async getUsers() {
+    const cacheKey = "dashboard:users";
+
+    return withCache(
+      cacheKey,
+      async () => {
+        const users = await db
+          .select({
+            id: user.id,
+            name: user.name,
+          })
+          .from(user)
+          .orderBy(asc(user.name));
+
+        return users;
       },
       300
     );
@@ -794,16 +852,5 @@ export class PatientService {
       console.error("Error getting patient treatments:", error);
       throw ApiError.internalServer("Failed to get patient treatments");
     }
-  }
-}
-
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-function formatDate(lastvisit: Date, addSuffix = true): string {
-  if (isToday(lastvisit)) {
-    return "Aujourd'hui";
-  } else if (isYesterday(lastvisit)) {
-    return "Hier";
-  } else {
-    return formatDistanceToNow(lastvisit, { locale: fr, addSuffix: true });
   }
 }

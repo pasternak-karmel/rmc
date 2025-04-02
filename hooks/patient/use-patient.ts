@@ -77,7 +77,6 @@ async function fetchPatients(
   return response.json();
 }
 
-// Fetch a single patient by ID
 async function fetchPatientById(id: string): Promise<Patient> {
   const response = await fetch(`/api/patients/${id}`);
 
@@ -188,12 +187,11 @@ export function usePatientList(
   });
 }
 
-// Hook for a single patient
 export function usePatient(id: string, options: UsePatientOptions = {}) {
   return useQuery({
     queryKey: ["patients", id],
     queryFn: () => fetchPatientById(id),
-    staleTime: 1000 * 60 * 5, // 5 minutes
+    staleTime: 1000 * 60 * 5,
     enabled: !!id,
     ...options,
   });

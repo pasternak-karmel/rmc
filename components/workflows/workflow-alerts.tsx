@@ -3,6 +3,7 @@
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { useFetchWorkflowAlerts } from "@/hooks/patient/use-workflow";
 import { AlertCircle, AlertTriangle, CheckCircle } from "lucide-react";
 import Link from "next/link";
 
@@ -10,105 +11,121 @@ interface WorkflowAlertsProps {
   workflowId: string;
 }
 
+type Alert = {
+  id: string;
+  patient: {
+    id: string;
+    name: string;
+    avatar: string;
+    initials: string;
+  };
+  type: "critical" | "warning" | "info";
+  message: string;
+  date: string;
+  resolved: boolean;
+};
+
 export function WorkflowAlerts({ workflowId }: WorkflowAlertsProps) {
   console.log(workflowId);
-  const alerts = [
-    {
-      id: "1",
-      patient: {
-        id: "2",
-        name: "Sophie Laurent",
-        avatar: "/placeholder.svg?height=40&width=40",
-        initials: "SL",
-      },
-      type: "critical",
-      message: "DFG en baisse rapide (- 15% en 1 mois)",
-      date: "Aujourd'hui, 09:45",
-      resolved: false,
-    },
-    {
-      id: "2",
-      patient: {
-        id: "5",
-        name: "Philippe Moreau",
-        avatar: "/placeholder.svg?height=40&width=40",
-        initials: "PM",
-      },
-      type: "critical",
-      message: "Potassium élevé (5.8 mmol/L)",
-      date: "Hier, 16:30",
-      resolved: false,
-    },
-    {
-      id: "3",
-      patient: {
-        id: "2",
-        name: "Sophie Laurent",
-        avatar: "/placeholder.svg?height=40&width=40",
-        initials: "SL",
-      },
-      type: "warning",
-      message: "Pression artérielle élevée (160/95 mmHg)",
-      date: "Il y a 2 jours",
-      resolved: false,
-    },
-    {
-      id: "4",
-      patient: {
-        id: "5",
-        name: "Philippe Moreau",
-        avatar: "/placeholder.svg?height=40&width=40",
-        initials: "PM",
-      },
-      type: "critical",
-      message: "Protéinurie importante (3.5 g/24h)",
-      date: "Il y a 3 jours",
-      resolved: false,
-    },
-    {
-      id: "5",
-      patient: {
-        id: "7",
-        name: "Robert Lefebvre",
-        avatar: "/placeholder.svg?height=40&width=40",
-        initials: "RL",
-      },
-      type: "warning",
-      message: "Hémoglobine en baisse (10.2 g/dL)",
-      date: "Il y a 4 jours",
-      resolved: false,
-    },
-    {
-      id: "6",
-      patient: {
-        id: "9",
-        name: "Jeanne Dubois",
-        avatar: "/placeholder.svg?height=40&width=40",
-        initials: "JD",
-      },
-      type: "warning",
-      message: "Rendez-vous manqué",
-      date: "Il y a 1 semaine",
-      resolved: true,
-    },
-    {
-      id: "7",
-      patient: {
-        id: "12",
-        name: "Michel Blanc",
-        avatar: "/placeholder.svg?height=40&width=40",
-        initials: "MB",
-      },
-      type: "warning",
-      message: "Prise de poids rapide (+2kg en 1 semaine)",
-      date: "Il y a 5 jours",
-      resolved: true,
-    },
-  ];
+  const { data: alerts } = useFetchWorkflowAlerts(workflowId);
+
+  // const alerts = [
+  //   {
+  //     id: "1",
+  //     patient: {
+  //       id: "2",
+  //       name: "Sophie Laurent",
+  //       avatar: "/placeholder.svg?height=40&width=40",
+  //       initials: "SL",
+  //     },
+  //     type: "critical",
+  //     message: "DFG en baisse rapide (- 15% en 1 mois)",
+  //     date: "Aujourd'hui, 09:45",
+  //     resolved: false,
+  //   },
+  //   {
+  //     id: "2",
+  //     patient: {
+  //       id: "5",
+  //       name: "Philippe Moreau",
+  //       avatar: "/placeholder.svg?height=40&width=40",
+  //       initials: "PM",
+  //     },
+  //     type: "critical",
+  //     message: "Potassium élevé (5.8 mmol/L)",
+  //     date: "Hier, 16:30",
+  //     resolved: false,
+  //   },
+  //   {
+  //     id: "3",
+  //     patient: {
+  //       id: "2",
+  //       name: "Sophie Laurent",
+  //       avatar: "/placeholder.svg?height=40&width=40",
+  //       initials: "SL",
+  //     },
+  //     type: "warning",
+  //     message: "Pression artérielle élevée (160/95 mmHg)",
+  //     date: "Il y a 2 jours",
+  //     resolved: false,
+  //   },
+  //   {
+  //     id: "4",
+  //     patient: {
+  //       id: "5",
+  //       name: "Philippe Moreau",
+  //       avatar: "/placeholder.svg?height=40&width=40",
+  //       initials: "PM",
+  //     },
+  //     type: "critical",
+  //     message: "Protéinurie importante (3.5 g/24h)",
+  //     date: "Il y a 3 jours",
+  //     resolved: false,
+  //   },
+  //   {
+  //     id: "5",
+  //     patient: {
+  //       id: "7",
+  //       name: "Robert Lefebvre",
+  //       avatar: "/placeholder.svg?height=40&width=40",
+  //       initials: "RL",
+  //     },
+  //     type: "warning",
+  //     message: "Hémoglobine en baisse (10.2 g/dL)",
+  //     date: "Il y a 4 jours",
+  //     resolved: false,
+  //   },
+  //   {
+  //     id: "6",
+  //     patient: {
+  //       id: "9",
+  //       name: "Jeanne Dubois",
+  //       avatar: "/placeholder.svg?height=40&width=40",
+  //       initials: "JD",
+  //     },
+  //     type: "warning",
+  //     message: "Rendez-vous manqué",
+  //     date: "Il y a 1 semaine",
+  //     resolved: true,
+  //   },
+  //   {
+  //     id: "7",
+  //     patient: {
+  //       id: "12",
+  //       name: "Michel Blanc",
+  //       avatar: "/placeholder.svg?height=40&width=40",
+  //       initials: "MB",
+  //     },
+  //     type: "warning",
+  //     message: "Prise de poids rapide (+2kg en 1 semaine)",
+  //     date: "Il y a 5 jours",
+  //     resolved: true,
+  //   },
+  // ];
 
   return (
     <div className="space-y-4">
-      {alerts.map((alert) => (
+      {alerts?.map((alert: Alert) => (
         <div
           key={alert.id}
           className={`flex items-center justify-between p-4 rounded-lg border ${

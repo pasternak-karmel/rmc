@@ -12,10 +12,9 @@ import {
 } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { usePatient } from "@/hooks/patient/use-patient";
-import { format, parseISO } from "date-fns";
-import { fr } from "date-fns/locale";
 import { Activity, Minus, TrendingDown, TrendingUp } from "lucide-react";
 import Link from "next/link";
+import { formatDateCustom } from "./date-formater";
 
 interface PatientDetailsProps {
   id: string;
@@ -130,14 +129,6 @@ export function PatientDetails({ id }: PatientDetailsProps) {
   };
 
   // Format dates
-  const formatDate = (dateString: string) => {
-    try {
-      return format(parseISO(dateString), "dd MMMM yyyy", { locale: fr });
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    } catch (error) {
-      return dateString;
-    }
-  };
 
   return (
     <Card className="md:col-span-2">
@@ -195,7 +186,7 @@ export function PatientDetails({ id }: PatientDetailsProps) {
             </h3>
             <div className="grid grid-cols-[1fr_auto] gap-1 text-sm">
               <div className="font-medium">Date de naissance</div>
-              <div>{formatDate(patient.birthdate)}</div>
+              <div>{formatDateCustom(patient.birthdate)}</div>
               <div className="font-medium">Email</div>
               <div>{patient.email}</div>
               <div className="font-medium">Téléphone</div>
@@ -249,9 +240,9 @@ export function PatientDetails({ id }: PatientDetailsProps) {
             </h3>
             <div className="grid grid-cols-[1fr_auto] gap-1 text-sm">
               <div className="font-medium">Dernière visite</div>
-              <div>{formatDate(patient.medicalInfo.lastvisite)}</div>
+              <div>{formatDateCustom(patient.medicalInfo.lastvisite)}</div>
               <div className="font-medium">Prochain rendez-vous</div>
-              <div>{formatDate(patient.medicalInfo.nextvisite)}</div>
+              <div>{formatDateCustom(patient.medicalInfo.nextvisite)}</div>
             </div>
           </div>
 

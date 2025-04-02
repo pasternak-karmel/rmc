@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -5,10 +6,8 @@ import { Skeleton } from "@/components/ui/skeleton"; // Import du Skeleton
 import { AlertTriangle, Bell, Calendar, Users } from "lucide-react";
 
 type SectionCardsProps = {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   stats: any;
   isLoading: boolean;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   error: any;
 };
 
@@ -47,9 +46,7 @@ export function SectionCards({ stats, isLoading, error }: SectionCardsProps) {
           {isLoading ? (
             <Skeleton className="h-8 w-16" />
           ) : (
-            <div className="text-2xl font-bold">
-              {stats?.criticalPatients ?? 0}
-            </div>
+            <div className="text-2xl font-bold">{stats?.activeAlerts ?? 0}</div>
           )}
           <p className="text-xs text-muted-foreground">
             Patients nécessitant une attention immédiate
@@ -69,9 +66,11 @@ export function SectionCards({ stats, isLoading, error }: SectionCardsProps) {
             <Skeleton className="h-8 w-16" />
           ) : (
             <div className="text-2xl font-bold">
-              {stats?.upcomingAppointments?.filter((appointment: { date: string; }) => {
-                return appointment.date === "Aujourd'hui";
-              } ).length ?? 0}
+              {stats?.upcomingAppointments?.filter(
+                (appointment: { date: string }) => {
+                  return appointment.date === "Aujourd'hui";
+                }
+              ).length ?? 0}
             </div>
           )}
           <p className="text-xs text-muted-foreground">

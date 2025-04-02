@@ -31,6 +31,7 @@ import {
   useCreatePatient,
   useUpdatePatient,
 } from "@/hooks/patient/use-patient";
+import { useUsers } from "@/hooks/use-users";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { ArrowLeft, Loader2, Save } from "lucide-react";
 import Link from "next/link";
@@ -82,6 +83,8 @@ interface PatientFormProps {
 }
 
 export function PatientForm({ patient, isEdit = false }: PatientFormProps) {
+  const { data: users, isLoading: isLoadingUsers } = useUsers();
+
   const { mutate: createPatient, isPending: isCreating } = useCreatePatient({
     redirectTo: "/patients",
   });
@@ -127,9 +130,9 @@ export function PatientForm({ patient, isEdit = false }: PatientFormProps) {
         phone: patient.phone,
         address: patient.address,
         medicalInfo: {
-          stage: patient.medicalInfo.stade,
+          stage: patient.medicalInfo.stade || 1,
           status: patient.medicalInfo.status,
-          medecin: patient.medicalInfo.medecin,
+          medecin: patient.medicalInfo.medecin || "",
           dfg: patient.medicalInfo.dfg,
           proteinurie: patient.medicalInfo.proteinurie,
         },
@@ -385,13 +388,30 @@ export function PatientForm({ patient, isEdit = false }: PatientFormProps) {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Médecin référent</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Dr. Nom" {...field} />
-                      </FormControl>
+                      <Select
+                        onValueChange={field.onChange}
+                        defaultValue={field.value}
+                        value={field.value || ""}
+                        disabled={isLoadingUsers}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Sélectionner un médecin" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {users?.map((user) => (
+                            <SelectItem key={user.id} value={user.id}>
+                              {"Dr "} {user.name}{" "}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
+
                 <FormField
                   control={form.control}
                   name="notes"

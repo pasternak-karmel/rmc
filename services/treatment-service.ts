@@ -4,6 +4,7 @@ import { ApiError } from "@/lib/api-error";
 import { deleteCache, deleteCacheByPattern, withCache } from "@/lib/cache";
 import { and, asc, desc, eq, gte, lte, type SQL, sql } from "drizzle-orm";
 import { v4 as uuidv4 } from "uuid";
+import { MedicalHistoryService } from "./medical-history-service";
 
 export interface TreatmentFilters {
   category?: string;
@@ -202,6 +203,16 @@ export class TreatmentService {
         interactions,
         createdAt: now,
         updatedAt: now,
+      });
+
+      // insert into historique table
+      await MedicalHistoryService.createMedicalRecord({
+        patientId,
+        date: now.toDateString(),
+        title: "Traitement ajouté",
+        description: medicament,
+        type: "medication",
+        medecin,
       });
 
       // Invalidate cache

@@ -5,17 +5,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Eye } from "lucide-react";
 import Link from "next/link";
+import { Patient } from "@/types/types";
 
-type Patient = {
-  id: string;
-  name: string;
-  age: number;
-  stage: number;
-  lastVisit: string;
-  critical: boolean;
-  avatar: string;
-  initials: string;
-};
 
 export function PatientOverview({ patients }: { patients: Patient[] }) {
   return (

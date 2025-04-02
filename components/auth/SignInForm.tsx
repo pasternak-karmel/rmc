@@ -64,10 +64,10 @@ export default function SignInForm() {
         className={cn("flex flex-col gap-6", "w-full max-w-sm mx-auto")}
       >
         {/* Header Section */}
-        <div className="flex flex-col items-center gap-2 text-center">
-          <h1 className="text-2xl font-bold">Login to your account</h1>
-          <p className="text-muted-foreground text-sm text-balance">
-            Enter your email below to login to your account
+        <div className="flex flex-col items-center gap-3 text-center whitespace-nowrap">
+          <h1 className="text-2xl font-bold">Connectez-vous à votre compte</h1>
+          <p className="text-muted-foreground text-xs text-balance ">
+            Entrez votre email pour vous connecter à votre compte{" "}
           </p>
         </div>
 
@@ -99,7 +99,7 @@ export default function SignInForm() {
             name="password"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Password</FormLabel>
+                <FormLabel>Mot de passe</FormLabel>
                 <FormControl>
                   <Input
                     {...field}
@@ -116,13 +116,13 @@ export default function SignInForm() {
           {urlError && <p className="text-red-500">{urlError}</p>}
           {/* Submit Button */}
           <Button disabled={isPending} type="submit" className="w-full">
-            {isPending ? "Signing in..." : "Sign in"}
+            {isPending ? "Signing in..." : "Se connecter"}
           </Button>
 
           {/* Social Login Option */}
           <div className="after:border-border relative text-center text-sm after:absolute after:inset-0 after:top-1/2 after:z-0 after:flex after:items-center after:border-t">
             <span className="bg-background text-muted-foreground relative z-10 px-2">
-              Or continue with
+              Ou connectez-vous avec
             </span>
           </div>
           <Button variant="outline" className="w-full">
@@ -132,14 +132,14 @@ export default function SignInForm() {
                 fill="currentColor"
               />
             </svg>
-            Login with Google
+            Se connecter avec Github
           </Button>
 
           {/* Sign up link */}
           <div className="text-center text-sm">
-            Don&apos;t have an account?{" "}
+            Vous n&apos;avez pas de compte ? `
             <a href="/auth/sign-up" className="underline underline-offset-4">
-              Sign up
+              S&apos;inscrire
             </a>
           </div>
         </div>

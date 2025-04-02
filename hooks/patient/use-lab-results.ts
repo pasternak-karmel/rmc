@@ -172,7 +172,7 @@ async function fetchLabResultTrends(
 async function fetchAvailableTestNames(patientId: string): Promise<string[]> {
   const response = await fetch(
     `/api/patients/${patientId}/lab-results/test-names`
-  ); 
+  );
 
   if (!response.ok) {
     const errorData = await response.json();

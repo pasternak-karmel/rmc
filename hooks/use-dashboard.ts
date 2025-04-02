@@ -1,5 +1,6 @@
 "use client";
 
+import { Alert, Appointment, Patient } from "@/types/types";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 
@@ -8,27 +9,10 @@ export interface DashboardStats {
   stageDistribution: Array<{ stage: number; count: number }>;
   statusDistribution: Array<{ status: string; count: number }>;
   criticalPatients: number;
-  upcomingAppointments: Array<{
-    id: string;
-    patient: string;
-    patientId: string;
-    date: string;
-    time: string;
-    type: string;
-    virtual: boolean;
-    avatar: string;
-    initials: string;
-  }>;
-  recentPatients: Array<{
-    id: string;
-    name: string;
-    lastVisit: string;
-    stage: number;
-    age: number;
-    critical: boolean;
-    avatar: string;
-    initials: string;
-  }>;
+  activeAlerts: number;
+  upcomingAppointments: Appointment[];
+  recentPatients: Patient[];
+  alerts: Array<Alert>;
 }
 
 async function fetchDashboardStats(): Promise<DashboardStats> {

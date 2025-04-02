@@ -1,9 +1,9 @@
 import { z } from "zod";
 
 export const createWorkflowSchema = z.object({
-  name: z.string().min(2, "Workflow name must be at least 2 characters"),
+  title: z.string().min(2, "Workflow name must be at least 2 characters"),
   description: z.string().min(5, "Description must be at least 5 characters"),
-  createdBy: z.string().min(1, "Creator name is required"),
+  // createdBy: z.string().min(1, "Creator name is required"),
 });
 
 export const updateWorkflowSchema = createWorkflowSchema.partial();
@@ -34,7 +34,7 @@ export const workflowQuerySchema = z.object({
   page: z.coerce.number().int().positive().default(1),
   limit: z.coerce.number().int().positive().max(100).default(10),
   search: z.string().optional(),
-  sortBy: z.enum(["name", "createdAt"]).default("createdAt"),
+  sortBy: z.enum(["title", "createdAt"]).default("createdAt"),
   sortOrder: z.enum(["asc", "desc"]).default("desc"),
 });
 

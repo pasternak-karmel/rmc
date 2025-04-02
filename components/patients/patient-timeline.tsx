@@ -14,6 +14,7 @@ import {
   Stethoscope,
 } from "lucide-react";
 import { Skeleton } from "../ui/skeleton";
+import { formatDateCustom } from "./date-formater";
 
 interface PatientTimelineProps {
   patientId: string;
@@ -76,7 +77,7 @@ export function PatientTimeline({ patientId }: PatientTimelineProps) {
             <div className="flex items-center gap-2">
               <div className="flex items-center gap-1 text-sm text-muted-foreground">
                 <Calendar className="h-3.5 w-3.5" />
-                <span>{event.date}</span>
+                <span>{formatDateCustom(event.date)}</span>
               </div>
 
               {event.type === "consultation" && (

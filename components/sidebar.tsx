@@ -15,6 +15,7 @@ import {
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
+
 const routes = [
   {
     label: "Tableau de bord",
@@ -54,11 +55,19 @@ const routes = [
   },
 ];
 
-export default function Sidebar() {
+interface SidebarProps {
+  mobile?: boolean; // Ajoutez cette prop
+}
+
+export default function Sidebar({ mobile = false }: SidebarProps) {
   const pathname = usePathname();
 
   return (
-    <div className="space-y-4 py-4 flex flex-col h-full bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-slate-50 border-r">
+    <div className={cn(
+      "space-y-4 py-4 flex-col h-full bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-slate-50 border-r",
+      "transition-transform duration-300 ease-in-out",
+      mobile ? "flex" : "hidden md:flex"
+    )}>
       <div className="px-3 py-2 flex-1">
         <Link href="/" className="flex items-center pl-3 mb-10">
           <div className="relative w-8 h-8 mr-4 rounded-full bg-primary flex items-center justify-center">

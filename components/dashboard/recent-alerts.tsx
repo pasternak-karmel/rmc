@@ -2,58 +2,46 @@
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Alert } from "@/types/types";
 import { AlertCircle, AlertTriangle, CheckCircle } from "lucide-react";
 import Link from "next/link";
+import { useState } from "react";
+import { toast } from "sonner";
 
-const alerts = [
-  {
-    id: "1",
-    patient: "Sophie Laurent",
-    patientId: "2",
-    type: "critical",
-    message: "DFG en baisse rapide (- 15% en 1 mois)",
-    date: "Aujourd'hui, 09:45",
-    resolved: false,
-  },
-  {
-    id: "2",
-    patient: "Philippe Moreau",
-    patientId: "5",
-    type: "critical",
-    message: "Potassium élevé (5.8 mmol/L)",
-    date: "Hier, 16:30",
-    resolved: false,
-  },
-  {
-    id: "3",
-    patient: "Martin Dupont",
-    patientId: "1",
-    type: "warning",
-    message: "Pression artérielle élevée (160/95 mmHg)",
-    date: "Il y a 2 jours",
-    resolved: false,
-  },
-  {
-    id: "4",
-    patient: "Jean Petit",
-    patientId: "3",
-    type: "info",
-    message: "Résultats d'analyse disponibles",
-    date: "Il y a 3 jours",
-    resolved: true,
-  },
-  {
-    id: "5",
-    patient: "Marie Leroy",
-    patientId: "4",
-    type: "warning",
-    message: "Protéinurie en augmentation",
-    date: "Il y a 5 jours",
-    resolved: true,
-  },
-];
+export function RecentAlerts({ initialAlerts } : { initialAlerts: Alert[] }) {
 
-export function RecentAlerts() {
+  const [alerts, setAlerts] = useState<Alert[]>(initialAlerts);
+
+  async function resolve(id:string){
+    try {
+      const response = await fetch(`/api/alerts/${id}`);
+  
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(
+          errorData.error || "Erreur lors de la résolution de l'alerte"
+        );
+      }
+  
+      const data = await response.json();
+      toast.success("Alerte résolue avec succès");
+
+      setAlerts((prevAlerts) =>
+        prevAlerts.map((alert) =>
+          alert.id === id ? { ...alert, resolved: true } : alert
+        )
+      );
+
+      return data as Alert;
+    } catch (err) {
+      const error =
+        err instanceof Error ? err : new Error("Une erreur inconnue s'est produite");
+      toast.error(error.message);
+      throw error;
+    }
+  }
+
+
   return (
     <div className="space-y-4">
       {alerts.map((alert) => (
@@ -108,7 +96,7 @@ export function RecentAlerts() {
           </div>
 
           {!alert.resolved ? (
-            <Button variant="outline" size="sm" className="gap-1">
+            <Button onClick={() => resolve(alert.id)} variant="outline" size="sm" className="gap-1">
               <CheckCircle className="h-4 w-4" />
               <span className="hidden sm:inline">Résoudre</span>
             </Button>

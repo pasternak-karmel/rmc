@@ -12,6 +12,7 @@ import {
 import { useTreatments } from "@/hooks/patient/use-treatments";
 import { AlertTriangle, Check, X } from "lucide-react";
 import { Skeleton } from "../ui/skeleton";
+import { formatDateCustom } from "./date-formater";
 import { AddTraitement } from "./traitement";
 
 interface PatientMedicationsProps {
@@ -59,7 +60,7 @@ export function PatientMedications({ patientId }: PatientMedicationsProps) {
                 </TableCell>
                 <TableCell>{medication.posologie}</TableCell>
                 <TableCell>{medication.frequence}</TableCell>
-                <TableCell>{medication.status}</TableCell>
+                <TableCell>{formatDateCustom(medication.date)}</TableCell>
                 <TableCell>
                   {medication.status === "active" && (
                     <Badge

@@ -34,7 +34,9 @@ export const infoMedical = pgTable("information_medical", {
     .references(() => patient.id, { onDelete: "cascade" }),
   stade: integer("stade").notNull().default(1),
   status: text("status").notNull().default("stable"),
-  medecin: text("medecin").notNull(),
+  medecin: text("medecin")
+    .notNull()
+    .references(() => user.id, { onDelete: "cascade" }),
   dfg: integer("dfg").notNull().default(0),
   previousDfg: integer("previous_dfg").notNull().default(0),
   proteinurie: integer("proteinurie").notNull().default(0),
@@ -58,6 +60,7 @@ export const historique = pgTable("historique", {
   date: timestamp("date", { withTimezone: true }).notNull(),
   isResolved: boolean("isResolved").$default(() => false),
   description: text("description").notNull(),
+  alertType: text("alertType"),
   type: text("type").notNull(),
   medecin: text("medecin")
     .notNull()
@@ -145,4 +148,38 @@ export const notifications = pgTable("notifications", {
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
     .defaultNow(),
+});
+
+export const workflow = pgTable("workflow", {
+  id: uuid("id").defaultRandom().primaryKey().$defaultFn(createId),
+  title: text("title").notNull(),
+  description: text("description").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});
+
+export const workflowPatient = pgTable("workflow_patient", {
+  id: uuid("id").defaultRandom().primaryKey().$defaultFn(createId),
+  workflowId: uuid("workflow_id")
+    .notNull()
+    .references(() => workflow.id, { onDelete: "cascade" }),
+  patientId: uuid("patient_id")
+    .notNull()
+    .references(() => patient.id, { onDelete: "cascade" }),
+});
+
+export const tasks = pgTable("tasks", {
+  id: uuid("id").defaultRandom().primaryKey().$defaultFn(createId),
+  patientId: uuid("patient_id")
+    .notNull()
+    .references(() => patient.id, { onDelete: "cascade" }),
+  title: text("title").notNull(),
+  dueDate: timestamp("due_date", { withTimezone: true }).notNull(),
+  priority: text("priority").notNull(),
+  completed: boolean("completed").default(false),
+  assignedTo: text("assigned_to").notNull(),
 });

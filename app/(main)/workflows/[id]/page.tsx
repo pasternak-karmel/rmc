@@ -1,3 +1,5 @@
+"use client";
+
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -10,6 +12,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { WorkflowAlerts } from "@/components/workflows/workflow-alerts";
 import { WorkflowPatients } from "@/components/workflows/workflow-patients";
 import { WorkflowTasks } from "@/components/workflows/workflow-tasks";
+import { useFetchWorkflow } from "@/hooks/patient/use-workflow";
 import {
   AlertTriangle,
   ArrowLeft,
@@ -30,26 +33,8 @@ type Params = Promise<{ id: string }>;
 export default function WorkflowDetailsPage(props: { params: Params }) {
   const params = use(props.params);
   const id = params.id;
-  const workflow = {
-    id: id,
-    name: "Suivi MRC Stade 4-5",
-    description:
-      "Workflow intensif pour les patients en stade avancé de MRC (4-5)",
-    patients: 18,
-    tasks: {
-      total: 24,
-      completed: 15,
-      pending: 9,
-    },
-    alerts: {
-      total: 7,
-      critical: 3,
-      warning: 4,
-    },
-    lastUpdated: "Aujourd'hui",
-    createdBy: "Dr. Martin Lefèvre",
-    createdAt: "15/01/2023",
-  };
+
+  const { data: workflow } = useFetchWorkflow(id);
 
   return (
     <div className="flex flex-col gap-6">
@@ -59,7 +44,7 @@ export default function WorkflowDetailsPage(props: { params: Params }) {
             <ArrowLeft className="h-5 w-5" />
           </Button>
         </Link>
-        <h1 className="text-3xl font-bold tracking-tight">{workflow.name}</h1>
+        <h1 className="text-3xl font-bold tracking-tight">{workflow?.title}</h1>
         <div className="ml-auto">
           <Link href={`/workflows/${params.id}/parametres`}>
             <Button variant="outline">
@@ -77,7 +62,7 @@ export default function WorkflowDetailsPage(props: { params: Params }) {
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{workflow.patients}</div>
+            <div className="text-2xl font-bold">{workflow?.patients}</div>
             <p className="text-xs text-muted-foreground">
               Suivis avec ce workflow
             </p>
@@ -89,13 +74,13 @@ export default function WorkflowDetailsPage(props: { params: Params }) {
             <ClipboardList className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{workflow.tasks.pending}</div>
+            <div className="text-2xl font-bold">{workflow?.tasks.pending}</div>
             <div className="flex items-center gap-1 text-xs text-muted-foreground">
               <CheckCircle2 className="h-3 w-3 text-green-500" />
-              <span>{workflow.tasks.completed} terminées</span>
+              <span>{workflow?.tasks.completed} terminées</span>
               <span className="mx-1">•</span>
               <Clock className="h-3 w-3 text-amber-500" />
-              <span>{workflow.tasks.pending} en attente</span>
+              <span>{workflow?.tasks.pending} en attente</span>
             </div>
           </CardContent>
         </Card>
@@ -105,13 +90,13 @@ export default function WorkflowDetailsPage(props: { params: Params }) {
             <Bell className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{workflow.alerts.total}</div>
+            <div className="text-2xl font-bold">{workflow?.alerts.total}</div>
             <div className="flex items-center gap-1 text-xs text-muted-foreground">
               <AlertTriangle className="h-3 w-3 text-destructive" />
-              <span>{workflow.alerts.critical} critiques</span>
+              <span>{workflow?.alerts.critical} critiques</span>
               <span className="mx-1">•</span>
               <AlertTriangle className="h-3 w-3 text-amber-500" />
-              <span>{workflow.alerts.warning} avertissements</span>
+              <span>{workflow?.alerts.warning} avertissements</span>
             </div>
           </CardContent>
         </Card>

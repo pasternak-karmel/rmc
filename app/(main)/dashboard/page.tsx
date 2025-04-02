@@ -40,7 +40,7 @@ export default function Dashboard() {
           <TabsTrigger value="overview">Vue d&apos;ensemble</TabsTrigger>
           <TabsTrigger value="alerts">Alertes</TabsTrigger>
           <TabsTrigger value="appointments">Rendez-vous</TabsTrigger>
-          <TabsTrigger value="analytics">Analytique</TabsTrigger>
+          {/* <TabsTrigger value="analytics">Analytique</TabsTrigger> */}
         </TabsList>
         <TabsContent value="overview" className="space-y-4">
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
@@ -78,7 +78,7 @@ export default function Dashboard() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <RecentAlerts />
+              <RecentAlerts initialAlerts={stats?.alerts || []} />
             </CardContent>
           </Card>
         </TabsContent>
@@ -97,7 +97,7 @@ export default function Dashboard() {
             </CardContent>
           </Card>
         </TabsContent>
-        <TabsContent value="analytics" className="space-y-4">
+        {/* <TabsContent value="analytics" className="space-y-4">
           <Card>
             <CardHeader>
               <CardTitle>Tendances et Analytique</CardTitle>
@@ -111,7 +111,7 @@ export default function Dashboard() {
               </div>
             </CardContent>
           </Card>
-        </TabsContent>
+        </TabsContent> */}
       </Tabs>
     </div>
   );

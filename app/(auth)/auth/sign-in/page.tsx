@@ -1,3 +1,4 @@
+"use client"
 import SignInForm from "@/components/auth/SignInForm";
 import { GalleryVerticalEnd } from "lucide-react";
 import Image from "next/image";
@@ -25,7 +26,7 @@ export default function SignInPage() {
       </div>
       <div className="bg-muted relative hidden lg:block">
         <Image
-          src="/welcome.jpeg"
+          src="/images/welcome.jpeg"
           width={1000}
           height={1000}
           alt="Welcome picture"
