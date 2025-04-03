@@ -24,14 +24,14 @@ import Link from "next/link";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 
-const workflowSchema = createWorkflowSchema;
+  const workflowSchema = createWorkflowSchema;
 
-type WorkflowValues = z.infer<typeof workflowSchema>;
+  type WorkflowValues = z.infer<typeof workflowSchema>;
 
-interface WorkflowFormProps {
-  workflow?: Workflow;
-  isEdit?: boolean;
-}
+  interface WorkflowFormProps {
+    workflow?: Workflow;
+    isEdit?: boolean;
+  }
 
 export default function WorkflowForm({
   workflow,

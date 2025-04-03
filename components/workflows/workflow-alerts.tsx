@@ -4,8 +4,11 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useFetchWorkflowAlerts } from "@/hooks/patient/use-workflow";
+import { useLoader } from "@/provider/LoaderContext";
 import { AlertCircle, AlertTriangle, CheckCircle } from "lucide-react";
 import Link from "next/link";
+import { useEffect, useState } from "react";
+import { toast } from "sonner";
 
 interface WorkflowAlertsProps {
   workflowId: string;
@@ -26,102 +29,49 @@ type Alert = {
 };
 
 export function WorkflowAlerts({ workflowId }: WorkflowAlertsProps) {
-  console.log(workflowId);
-  const { data: alerts } = useFetchWorkflowAlerts(workflowId);
+  const { data: alertData, isLoading : loading} = useFetchWorkflowAlerts(workflowId);
+  const [alerts, setAlerts] = useState<Alert[]>(alertData);
 
-  // const alerts = [
-  //   {
-  //     id: "1",
-  //     patient: {
-  //       id: "2",
-  //       name: "Sophie Laurent",
-  //       avatar: "/placeholder.svg?height=40&width=40",
-  //       initials: "SL",
-  //     },
-  //     type: "critical",
-  //     message: "DFG en baisse rapide (- 15% en 1 mois)",
-  //     date: "Aujourd'hui, 09:45",
-  //     resolved: false,
-  //   },
-  //   {
-  //     id: "2",
-  //     patient: {
-  //       id: "5",
-  //       name: "Philippe Moreau",
-  //       avatar: "/placeholder.svg?height=40&width=40",
-  //       initials: "PM",
-  //     },
-  //     type: "critical",
-  //     message: "Potassium élevé (5.8 mmol/L)",
-  //     date: "Hier, 16:30",
-  //     resolved: false,
-  //   },
-  //   {
-  //     id: "3",
-  //     patient: {
-  //       id: "2",
-  //       name: "Sophie Laurent",
-  //       avatar: "/placeholder.svg?height=40&width=40",
-  //       initials: "SL",
-  //     },
-  //     type: "warning",
-  //     message: "Pression artérielle élevée (160/95 mmHg)",
-  //     date: "Il y a 2 jours",
-  //     resolved: false,
-  //   },
-  //   {
-  //     id: "4",
-  //     patient: {
-  //       id: "5",
-  //       name: "Philippe Moreau",
-  //       avatar: "/placeholder.svg?height=40&width=40",
-  //       initials: "PM",
-  //     },
-  //     type: "critical",
-  //     message: "Protéinurie importante (3.5 g/24h)",
-  //     date: "Il y a 3 jours",
-  //     resolved: false,
-  //   },
-  //   {
-  //     id: "5",
-  //     patient: {
-  //       id: "7",
-  //       name: "Robert Lefebvre",
-  //       avatar: "/placeholder.svg?height=40&width=40",
-  //       initials: "RL",
-  //     },
-  //     type: "warning",
-  //     message: "Hémoglobine en baisse (10.2 g/dL)",
-  //     date: "Il y a 4 jours",
-  //     resolved: false,
-  //   },
-  //   {
-  //     id: "6",
-  //     patient: {
-  //       id: "9",
-  //       name: "Jeanne Dubois",
-  //       avatar: "/placeholder.svg?height=40&width=40",
-  //       initials: "JD",
-  //     },
-  //     type: "warning",
-  //     message: "Rendez-vous manqué",
-  //     date: "Il y a 1 semaine",
-  //     resolved: true,
-  //   },
-  //   {
-  //     id: "7",
-  //     patient: {
-  //       id: "12",
-  //       name: "Michel Blanc",
-  //       avatar: "/placeholder.svg?height=40&width=40",
-  //       initials: "MB",
-  //     },
-  //     type: "warning",
-  //     message: "Prise de poids rapide (+2kg en 1 semaine)",
-  //     date: "Il y a 5 jours",
-  //     resolved: true,
-  //   },
-  // ];
+  const { startLoading, stopLoading } = useLoader();
+
+  useEffect(() => {
+    if(loading) {
+      startLoading();
+    }
+    else if (alertData) {
+      setAlerts(alertData);
+    }
+    stopLoading();
+  }, [alertData, loading, startLoading, stopLoading]);
+  
+  async function resolve(id:string){
+    try {
+      const response = await fetch(`/api/alerts/${id}`);
+  
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(
+          errorData.error || "Erreur lors de la résolution de l'alerte"
+        );
+      }
+  
+      const data = await response.json();
+      toast.success("Alerte résolue avec succès");
+
+      setAlerts((prevAlerts) =>
+        prevAlerts.map((alert) =>
+          alert.id === id ? { ...alert, resolved: true } : alert
+        )
+      );
+
+      return data as Alert;
+    } catch (err) {
+      const error =
+        err instanceof Error ? err : new Error("Une erreur inconnue s'est produite");
+      toast.error(error.message);
+      throw error;
+    }
+  }
 
   return (
     <div className="space-y-4">
@@ -184,7 +134,7 @@ export function WorkflowAlerts({ workflowId }: WorkflowAlertsProps) {
           </div>
 
           {!alert.resolved ? (
-            <Button variant="outline" size="sm" className="gap-1">
+            <Button onClick={() => resolve(alert.id)} variant="outline" size="sm" className="gap-1">
               <CheckCircle className="h-4 w-4" />
               <span className="hidden sm:inline">Résoudre</span>
             </Button>

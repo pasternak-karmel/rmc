@@ -141,6 +141,17 @@ async function getAlerts(workflowId: string) {
   return response.json();
 }
 
+async function getTasks(workflowId: string) {
+  const response = await fetch(`/api/workflow/${workflowId}/tasks`);
+  if (!response.ok) {
+    const errorData = await response.json();
+    throw new Error(
+      errorData.error || "Erreur lors de la recuperation des taches du workflow"
+    );
+  }
+  return response.json();
+}
+
 export function useCreateWorkflow(options: UseWorkflowOptions = {}) {
   const queryClient = useQueryClient();
   const router = useRouter();
@@ -200,6 +211,14 @@ export function useFetchWorkflowAlerts(workflowId: string) {
   return useQuery({
     queryKey: ["workflow", workflowId, "alerts"],
     queryFn: () => getAlerts(workflowId),
+    staleTime: 1000 * 60 * 5,
+  });
+}
+
+export function useFetchWorkflowTasks(workflowId: string) {
+  return useQuery({
+    queryKey: ["workflow", workflowId, "tasks"],
+    queryFn: () => getTasks(workflowId),
     staleTime: 1000 * 60 * 5,
   });
 }

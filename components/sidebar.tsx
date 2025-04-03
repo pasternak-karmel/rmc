@@ -56,7 +56,7 @@ const routes = [
 ];
 
 interface SidebarProps {
-  mobile?: boolean; // Ajoutez cette prop
+  mobile?: boolean; 
 }
 
 export default function Sidebar({ mobile = false }: SidebarProps) {

@@ -3,6 +3,7 @@ import {
   historique,
   infoMedical,
   patient,
+  tasks as taskTable,
   workflow,
   workflowPatient,
 } from "@/db/schema";
@@ -94,10 +95,22 @@ export class WorkflowService {
               )
             );
 
+          const [{ tasks }] = await db
+          .select({ tasks: sql<number>`count(*)` })
+          .from(workflowPatient)
+          .innerJoin(
+            taskTable,
+            eq(taskTable.patientId, workflowPatient.patientId)
+          )
+          .where(
+              eq(workflowPatient.workflowId, workflow.id)
+          );
+
           return {
             ...workflow,
             patients,
             alerts,
+            tasks,
             lastUpdated: formatDate(workflow.lastUpdated),
           };
         })
@@ -171,6 +184,34 @@ export class WorkflowService {
               )
             );
 
+          const [{ pendingTasks }] = await db
+            .select({ pendingTasks: sql<number>`count(*)` })
+            .from(workflowPatient)
+            .innerJoin(
+              taskTable,
+              eq(taskTable.patientId, workflowPatient.patientId)
+            )
+            .where(
+              and(
+                eq(workflowPatient.workflowId, workflow.id),
+                eq(taskTable.completed, false)
+              )
+            );
+
+            const [{ completedTasks }] = await db
+            .select({ completedTasks: sql<number>`count(*)` })
+            .from(workflowPatient)
+            .innerJoin(
+              taskTable,
+              eq(taskTable.patientId, workflowPatient.patientId)
+            )
+            .where(
+              and(
+                eq(workflowPatient.workflowId, workflow.id),
+                eq(taskTable.completed, true)
+              )
+            );
+
           return {
             ...workflow,
             patients,
@@ -180,9 +221,9 @@ export class WorkflowService {
               warning: warningAlerts,
             },
             tasks: {
-              total: 24,
-              completed: 15,
-              pending: 9,
+              total: Number(completedTasks) + Number(pendingTasks),
+              completed: completedTasks,
+              pending: pendingTasks,
             },
             lastUpdated: formatDate(workflow.updatedAt),
           };
@@ -207,7 +248,7 @@ export class WorkflowService {
           birthdate: patient.birthdate,
           status: infoMedical.status,
           initials: sql<string>`substring(${patient.firstname}, 1, 1) || substring(${patient.lastname}, 1, 1)`,
-            avatar: sql<string>`'/placeholder.svg?height=40&width=40'`,
+          avatar: sql<string>`'/placeholder.svg?height=40&width=40'`,
         })
         .from(workflowPatient)
         .innerJoin(patient, eq(patient.id, workflowPatient.patientId))
@@ -230,16 +271,15 @@ export class WorkflowService {
             .where(
               and(
                 eq(historique.type, "alert"),
-                eq(workflowPatient.workflowId, id),
+                eq(workflowPatient.workflowId, id)
               )
             );
-
 
           return {
             ...data,
             alerts,
             tasks: 3,
-            age: calculateAge(data.birthdate)
+            age: calculateAge(data.birthdate),
           };
         })
       );
@@ -247,9 +287,60 @@ export class WorkflowService {
     });
   }
 
+  static async getWorkflowTasks(id: string) {
+    const cacheKey = `workflows-tasks:${id}`;
+    return withCache(cacheKey, async () => {
+      const result = await db
+        .select({
+          id: taskTable.id,
+          title: taskTable.title,
+          patientId: taskTable.patientId,
+          patient: sql<string>`${patient.firstname} || ' ' || ${patient.lastname}`,
+          avatar: sql<string>`'/placeholder.svg?height=40&width=40'`,
+          initials: sql<string>`substring(${patient.firstname}, 1, 1) || substring(${patient.lastname}, 1, 1)`,
+          dueDate: taskTable.dueDate,
+          priority: taskTable.priority,
+          completed: taskTable.completed,
+          assignedTo: taskTable.assignedTo,
+        })
+        .from(workflowPatient)
+        .innerJoin(patient, eq(patient.id, workflowPatient.patientId))
+        .innerJoin(taskTable, eq(taskTable.patientId, workflowPatient.patientId))
+        .where(eq(workflowPatient.workflowId, id))
+        .orderBy(desc(taskTable.dueDate))
+        ;
+
+      if (!result) {
+        throw ApiError.notFound(`Workflow with ID ${id} not found`);
+      }
+
+      const data = await Promise.all(
+        result.map(async (item) => {
+          const patientData = {
+            id: item.patientId,
+            name: item.patient,
+            avatar: item.avatar,
+            initials: item.initials,
+          };
+
+          const { patientId, patient, avatar, initials, ...rest } = item;
+
+          return {
+            ...rest,
+            patient: patientData,
+            dueDate: formatDate(item.dueDate),
+          };
+        })
+      );
+
+      return data;
+    
+    });
+  }
+
   static async getWorkflowAlerts(id: string) {
     const cacheKey = `workflows-alerts:${id}`;
-    
+
     return withCache(cacheKey, async () => {
       const result = await db
         .select({
@@ -265,41 +356,39 @@ export class WorkflowService {
           // date: sql<string>`strftime('%d/%m/%Y', ${historique.createdAt})`,
         })
         .from(workflowPatient)
-        .innerJoin(historique, eq(historique.patientId, workflowPatient.patientId))
+        .innerJoin(
+          historique,
+          eq(historique.patientId, workflowPatient.patientId)
+        )
         .innerJoin(patient, eq(patient.id, historique.patientId))
         .where(
-          and(
-            eq(workflowPatient.workflowId, id),
-            eq(historique.type, "alert")
-          )
+          and(eq(workflowPatient.workflowId, id), eq(historique.type, "alert"))
         );
 
-        if (!result) {
-          throw ApiError.notFound(`Workflow with ID ${id} not found`);
-        }
+      if (!result) {
+        throw ApiError.notFound(`Workflow with ID ${id} not found`);
+      }
 
-        const data = await Promise.all(
-          result.map(async (item) => {
-            const patientData = {
-              id: item.patientId,
-              name: item.patient,
-              avatar: item.avatar,
-              initials: item.initials,
-            };
-      
-            const { patientId, patient, avatar, initials, ...rest } = item;
-      
-            return {
-              ...rest,
-              patient: patientData,
-              date: formatDate(item.createdAt),
-            };
-          })
-        );
+      const data = await Promise.all(
+        result.map(async (item) => {
+          const patientData = {
+            id: item.patientId,
+            name: item.patient,
+            avatar: item.avatar,
+            initials: item.initials,
+          };
 
-        return data;
+          const { patientId, patient, avatar, initials, ...rest } = item;
 
+          return {
+            ...rest,
+            patient: patientData,
+            date: formatDate(item.createdAt),
+          };
+        })
+      );
 
+      return data;
     });
   }
 
@@ -317,20 +406,26 @@ export class WorkflowService {
         );
       }
 
-      const tx = await db.transaction(async (trx) => {
-        const [insertedWorkflow] = await trx
-          .insert(workflow)
-          .values({
-            id: uuidv4(),
-            title,
-            description,
-          })
-          .returning();
+      const existingWorkflow = await db
+        .select()
+        .from(workflow)
+        .where(eq(workflow.title, title))
+        .limit(1);
 
-        return insertedWorkflow;
-      });
+      if (existingWorkflow.length > 0) {
+        throw ApiError.conflict("Le workflow existe déjà");
+      }
 
-      return this.getWorkflowById(tx.id);
+      const [insertedWorkflow] = await db
+        .insert(workflow)
+        .values({
+          id: uuidv4(),
+          title,
+          description,
+        })
+        .returning();
+
+      return this.getWorkflowById(insertedWorkflow.id);
     } catch (error) {
       console.log(error);
       if (error instanceof ApiError) {

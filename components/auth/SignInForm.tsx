@@ -137,7 +137,7 @@ export default function SignInForm() {
 
           {/* Sign up link */}
           <div className="text-center text-sm">
-            Vous n&apos;avez pas de compte ? `
+            Vous n&apos;avez pas de compte ?
             <a href="/auth/sign-up" className="underline underline-offset-4">
               S&apos;inscrire
             </a>

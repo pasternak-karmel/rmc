@@ -29,19 +29,7 @@ export const auth = betterAuth({
     // },
     // requireEmailVerification: true,
   },
-  // emailVerification: {
-  //   sendOnSignUp: true,
-  //   sendVerificationEmail: async ({ user, url }) => {
-  //     // gonna be implemented later
-  //     // await sendVerificationEmail(user.email, url);
-  //   },
-  // },
   socialProviders: {
-    github: {
-      clientId: process.env.AUTH_GITHUB_ID!,
-      clientSecret: process.env.AUTH_GITHUB_SECRET!,
-      redirectURI: DEFAULT_LOGIN_REDIRECT,
-    },
     google: {
       clientId: process.env.AUTH_GOOGLE_ID!,
       clientSecret: process.env.AUTH_GOOGLE_SECRET!,

@@ -74,7 +74,7 @@ export default function WorkflowDetailsPage(props: { params: Params }) {
             <ClipboardList className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{workflow?.tasks.pending}</div>
+            <div className="text-2xl font-bold">{workflow?.tasks.total}</div>
             <div className="flex items-center gap-1 text-xs text-muted-foreground">
               <CheckCircle2 className="h-3 w-3 text-green-500" />
               <span>{workflow?.tasks.completed} terminées</span>
@@ -159,10 +159,12 @@ export default function WorkflowDetailsPage(props: { params: Params }) {
                   Tâches programmées pour les patients de ce workflow
                 </CardDescription>
               </div>
+              <Link href={`/tasks/nouveau?redirectTo=/workflows/${params.id}`}>
               <Button size="sm">
                 <PlusCircle className="mr-2 h-4 w-4" />
                 Nouvelle tâche
               </Button>
+              </Link>
             </CardHeader>
             <CardContent>
               <WorkflowTasks workflowId={params.id} />

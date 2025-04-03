@@ -48,8 +48,9 @@ export default function Dashboard() {
               <CardHeader>
                 <CardTitle>Patients récemment consultés</CardTitle>
                 <CardDescription>
-                  Les {stats?.recentPatients.length || 0} dernier(s) patients
-                  consultés
+                  {stats?.recentPatients.length === 0
+                    ? "Vous n'avez pas encore de patients consultés"
+                    : `Les ${stats?.recentPatients.length} dernier(s) patient(s) consulté(s)`}
                 </CardDescription>
               </CardHeader>
               <CardContent>

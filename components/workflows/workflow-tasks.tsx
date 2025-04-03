@@ -4,119 +4,81 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Calendar } from "lucide-react";
+import { useFetchWorkflowTasks } from "@/hooks/patient/use-workflow";
+import { useLoader } from "@/provider/LoaderContext";
+import { Calendar, CheckCircle } from "lucide-react";
 import Link from "next/link";
+import { useEffect, useState } from "react";
+import { toast } from "sonner";
 
 interface WorkflowTasksProps {
   workflowId: string;
 }
 
+type Task = {
+  id: string;
+  title: string;
+  patient: {
+    id: string;
+    name: string;
+    avatar: string;
+    initials: string;
+  };
+  dueDate: string;
+  priority: "high" | "medium" | "low";
+  completed: boolean;
+  assignedTo: string;
+};
+
 export function WorkflowTasks({ workflowId }: WorkflowTasksProps) {
-  console.log(workflowId);
-  const tasks = [
-    {
-      id: "1",
-      title: "Vérifier les résultats d'analyse",
-      patient: {
-        id: "2",
-        name: "Sophie Laurent",
-        avatar: "/placeholder.svg?height=40&width=40",
-        initials: "SL",
-      },
-      dueDate: "Aujourd'hui",
-      priority: "high",
-      completed: false,
-      assignedTo: "Dr. Martin Lefèvre",
-    },
-    {
-      id: "2",
-      title: "Ajuster le traitement antihypertenseur",
-      patient: {
-        id: "2",
-        name: "Sophie Laurent",
-        avatar: "/placeholder.svg?height=40&width=40",
-        initials: "SL",
-      },
-      dueDate: "Aujourd'hui",
-      priority: "high",
-      completed: false,
-      assignedTo: "Dr. Martin Lefèvre",
-    },
-    {
-      id: "3",
-      title: "Planifier une consultation avec le néphrologue",
-      patient: {
-        id: "5",
-        name: "Philippe Moreau",
-        avatar: "/placeholder.svg?height=40&width=40",
-        initials: "PM",
-      },
-      dueDate: "Demain",
-      priority: "medium",
-      completed: false,
-      assignedTo: "Dr. Sophie Moreau",
-    },
-    {
-      id: "4",
-      title: "Vérifier le niveau de potassium",
-      patient: {
-        id: "5",
-        name: "Philippe Moreau",
-        avatar: "/placeholder.svg?height=40&width=40",
-        initials: "PM",
-      },
-      dueDate: "Aujourd'hui",
-      priority: "high",
-      completed: false,
-      assignedTo: "Dr. Martin Lefèvre",
-    },
-    {
-      id: "5",
-      title: "Évaluer la fonction rénale",
-      patient: {
-        id: "7",
-        name: "Robert Lefebvre",
-        avatar: "/placeholder.svg?height=40&width=40",
-        initials: "RL",
-      },
-      dueDate: "Dans 3 jours",
-      priority: "medium",
-      completed: false,
-      assignedTo: "Dr. Martin Lefèvre",
-    },
-    {
-      id: "6",
-      title: "Discuter des options de dialyse",
-      patient: {
-        id: "5",
-        name: "Philippe Moreau",
-        avatar: "/placeholder.svg?height=40&width=40",
-        initials: "PM",
-      },
-      dueDate: "Dans 1 semaine",
-      priority: "medium",
-      completed: false,
-      assignedTo: "Dr. Sophie Moreau",
-    },
-    {
-      id: "7",
-      title: "Vérifier l'adhérence au traitement",
-      patient: {
-        id: "9",
-        name: "Jeanne Dubois",
-        avatar: "/placeholder.svg?height=40&width=40",
-        initials: "JD",
-      },
-      dueDate: "Dans 2 jours",
-      priority: "low",
-      completed: false,
-      assignedTo: "Dr. Martin Lefèvre",
-    },
-  ];
+  const { data: tasksData, isLoading:loading } = useFetchWorkflowTasks(workflowId);
+  const [tasks, setTasks] = useState<Task[]>(tasksData);
+
+  const { startLoading, stopLoading } = useLoader();
+
+  useEffect(() => {
+    if(loading) {
+      startLoading();
+    }
+    else if (tasksData) {
+      setTasks(tasksData);
+    }
+    stopLoading();
+  }, [tasksData, loading, startLoading, stopLoading]);
+
+  async function complete(id:string){
+    try {
+      startLoading();
+      const response = await fetch(`/api/tasks/${id}`);
+  
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(
+          errorData.error || "Erreur lors de la résolution de l'alerte"
+        );
+      }
+  
+      const data = await response.json();
+      toast.success("Tache terminée avec succès");
+
+      setTasks((prevTasks) =>
+        prevTasks.map((task) =>
+          task.id === id ? { ...task, completed: true } : task
+        )
+      );
+      stopLoading();
+      return data as Task;
+    } catch (err) {
+      const error =
+        err instanceof Error ? err : new Error("Une erreur inconnue s'est produite");
+      toast.error(error.message);
+      throw error;
+    }
+  }
 
   return (
     <div className="space-y-4">
-      {tasks.map((task) => (
+      {tasks?.map((task: Task) => (
         <div
           key={task.id}
           className={`flex items-start justify-between p-4 rounded-lg border ${
@@ -181,9 +143,19 @@ export function WorkflowTasks({ workflowId }: WorkflowTasksProps) {
             </div>
           </div>
 
-          <Button variant="ghost" size="sm">
-            Marquer comme terminée
-          </Button>
+          {!task.completed ? (
+            <Button onClick={() => complete(task.id)} variant="ghost" size="sm">
+              <CheckCircle className="h-4 w-4" />
+              <span className="hidden sm:inline">Marquer comme terminée</span>
+            </Button>
+          ) : (
+            <Badge
+              variant="outline"
+              className="bg-green-100 text-green-800 border-green-200"
+            >
+              Terminée
+            </Badge>
+          )}
         </div>
       ))}
     </div>

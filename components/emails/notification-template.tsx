@@ -1,3 +1,5 @@
+import Image from "next/image";
+
 type NotificationProps = {
   to: string;
   notificationTitle: string;
@@ -28,7 +30,7 @@ export const NotificationTemplate = ({
       <div className="border border-gray-200 rounded-lg shadow-sm overflow-hidden">
         {logoUrl && (
           <div className="text-center py-6 bg-white border-b border-gray-100">
-            <img
+            <Image
               src={logoUrl}
               alt={`${appName} Logo`}
               className="h-10 mx-auto"

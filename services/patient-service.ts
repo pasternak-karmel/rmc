@@ -10,7 +10,7 @@ import {
 import { ApiError } from "@/lib/api-error";
 import { auth } from "@/lib/auth";
 import { deleteCache, deleteCacheByPattern, withCache } from "@/lib/cache";
-import { formatDate } from "@/lib/utils";
+import { calculateAge, formatDate } from "@/lib/utils";
 import type {
   CreatePatientInput,
   PatientQueryParams,
@@ -695,7 +695,7 @@ export class PatientService {
             name: sql<string>`${patient.firstname} || ' ' || ${patient.lastname}`,
             lastVisit: infoMedical.lastvisite,
             stage: infoMedical.stade,
-            age: sql<number>`extract(year from age(${patient.birthdate}))`,
+            birthdate: patient.birthdate,
             critical: eq(infoMedical.status, "critical"),
             initials: sql<string>`substring(${patient.firstname}, 1, 1) || substring(${patient.lastname}, 1, 1)`,
             avatar: sql<string>`'/placeholder.svg?height=40&width=40'`,
@@ -708,6 +708,7 @@ export class PatientService {
 
         const recentPatients = recentPatientsQuery.map((patient) => ({
           ...patient,
+          age: calculateAge(patient.birthdate),
           lastVisit: formatDate(new Date(patient.lastVisit)),
         }));
 

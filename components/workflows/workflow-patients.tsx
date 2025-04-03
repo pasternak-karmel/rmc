@@ -29,6 +29,8 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 
+import { useRouter } from "next/navigation";
+
 interface WorkflowPatientsProps {
   workflowId: string;
 }
@@ -49,7 +51,14 @@ type Patient = {
 };
 
 export function WorkflowPatients({ workflowId }: WorkflowPatientsProps) {
-  console.log(workflowId);
+  const router = useRouter();
+
+  const currentPage = window.location.pathname;
+  const handleAddTaskClick = (patientId?: string) => {
+    router.push(
+      "/tasks/nouveau?redirectTo=" + currentPage + "&patientId=" + patientId
+    );
+  };
 
   const { data: patients } = useFetchWorkflowPatients(workflowId);
 
@@ -68,7 +77,7 @@ export function WorkflowPatients({ workflowId }: WorkflowPatientsProps) {
           </TableRow>
         </TableHeader>
         <TableBody>
-          {patients?.map((patient : Patient) => (
+          {patients?.map((patient: Patient) => (
             <TableRow key={patient.id}>
               <TableCell>
                 <div className="flex items-center gap-3">
@@ -158,7 +167,10 @@ export function WorkflowPatients({ workflowId }: WorkflowPatientsProps) {
                         <Calendar className="mr-2 h-4 w-4" />
                         Planifier un RDV
                       </DropdownMenuItem>
-                      <DropdownMenuItem className="cursor-pointer">
+                      <DropdownMenuItem
+                        className="cursor-pointer"
+                        onClick={() => handleAddTaskClick(patient.id)}
+                      >
                         <ClipboardList className="mr-2 h-4 w-4" />
                         Ajouter une tâche
                       </DropdownMenuItem>

@@ -182,4 +182,10 @@ export const tasks = pgTable("tasks", {
   priority: text("priority").notNull(),
   completed: boolean("completed").default(false),
   assignedTo: text("assigned_to").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
 });

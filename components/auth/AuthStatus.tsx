@@ -14,19 +14,38 @@ import { signOut, useSession } from "@/lib/auth-client";
 import { LogOut, Settings, User } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import { useLoader } from "@/provider/LoaderContext";
 
 export function AuthStatus() {
   const { data: session, isPending } = useSession();
+  const { startLoading, stopLoading } = useLoader();
+
   const user = session?.user;
   const router = useRouter();
 
-  if(isPending) {
-    return <div>Loading...</div> //TODO: Add a spinner or loader
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+
+  useEffect(() => {
+    if (isPending) {
+      setIsLoading(true);
+      startLoading();
+    } else {
+      setIsLoading(false);
+      stopLoading();
+    }
+
+    if (!isPending && !user) {
+      const currentUrl = encodeURIComponent(window.location.href);
+      router.push(`/auth/sign-in?callbackUrl=${currentUrl}`);
+    }
+  }, [isPending, user, router, startLoading, stopLoading]);
+
+  if (isLoading) {
+    return <div>Loading...</div>;
   }
 
   if (!user) {
-    const currentUrl = encodeURIComponent(window.location.href);
-    router.push(`/auth/sign-in?callbackUrl=${currentUrl}`);
     return null;
   }
 
