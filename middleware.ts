@@ -42,7 +42,9 @@ export async function middleware(request: NextRequest) {
     // Handle authentication routes
     if (isAuthRoute) {
       if (isLoggedIn) {
-        return NextResponse.redirect(new URL(DEFAULT_LOGIN_REDIRECT, request.url));
+        return NextResponse.redirect(
+          new URL(DEFAULT_LOGIN_REDIRECT, request.url)
+        );
       }
       return NextResponse.next();
     }
@@ -64,8 +66,7 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  // Update the matcher to allow the public/images/ folder and other static assets
   matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|/images/).*)",
+    "/((?!_next/static|_next/image|favicon.ico|images/|icons/|fonts/|.*\\.(?:png|jpg|jpeg|gif|svg|webp|ico)).*)",
   ],
 };
