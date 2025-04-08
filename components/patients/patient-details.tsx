@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { usePatient } from "@/hooks/patient/use-patient";
-import { Activity, Minus, TrendingDown, TrendingUp } from "lucide-react";
+import { Activity, Bell, Minus, TrendingDown, TrendingUp } from "lucide-react";
 import Link from "next/link";
 import { formatDateCustom } from "./date-formater";
 
@@ -105,16 +105,16 @@ export function PatientDetails({ id }: PatientDetailsProps) {
     patient.medicalInfo.dfg > patient.medicalInfo.previousDfg
       ? "up"
       : patient.medicalInfo.dfg < patient.medicalInfo.previousDfg
-      ? "down"
-      : "stable";
+        ? "down"
+        : "stable";
 
   const proteinurieTrend =
     patient.medicalInfo.proteinurie > patient.medicalInfo.previousProteinurie
       ? "up"
       : patient.medicalInfo.proteinurie <
-        patient.medicalInfo.previousProteinurie
-      ? "down"
-      : "stable";
+          patient.medicalInfo.previousProteinurie
+        ? "down"
+        : "stable";
 
   // Calculate age from birthdate
   const calculateAge = (birthdate: string) => {
@@ -248,9 +248,15 @@ export function PatientDetails({ id }: PatientDetailsProps) {
 
           <div className="pt-2">
             <Link href={`/workflows/patient/${id}`}>
-              <Button variant="outline" className="w-full">
+              <Button variant="outline" className="w-full mb-2">
                 <Activity className="mr-2 h-4 w-4" />
                 Workflow de suivi
+              </Button>
+            </Link>
+            <Link href={`/patients/${id}/automation`}>
+              <Button variant="outline" className="w-full">
+                <Bell className="mr-2 h-4 w-4" />
+                Automatisation et alertes
               </Button>
             </Link>
           </div>

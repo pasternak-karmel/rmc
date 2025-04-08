@@ -8,6 +8,15 @@ import { twoFactor } from "better-auth/plugins";
 import { passkey } from "better-auth/plugins/passkey";
 
 export const auth = betterAuth({
+  // advanced: {
+  //   cookiePrefix: "health-care",
+  //   cookies: {
+  //     session_token: {
+  //       name: "health-care-token",
+  //       attributes: {},
+  //     },
+  //   },
+  // },
   emailVerification: {
     sendOnSignUp: true,
     // sendVerificationEmail: async ({ user, url }) => {

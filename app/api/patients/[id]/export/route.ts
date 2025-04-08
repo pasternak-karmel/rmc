@@ -12,10 +12,25 @@ import PDFDocument from "pdfkit";
 
 type Params = Promise<{ id: string }>;
 
+interface LabResultItem {
+  name: string;
+  value: string | number;
+  unit: string;
+  referenceMin?: number;
+  referenceMax?: number;
+  isAbnormal: boolean;
+}
+
+interface VitalMeasurement {
+  type: string;
+  value: string | number;
+  unit: string;
+}
+
 export async function GET(req: NextRequest, segmentData: { params: Params }) {
   try {
     const rateLimitResult = await rateLimit(req, {
-      limit: 10,
+      limit: 50,
       window: 60,
     });
 
@@ -23,38 +38,30 @@ export async function GET(req: NextRequest, segmentData: { params: Params }) {
 
     await getAuthenticatedUser(req);
 
-    const params = await segmentData.params;
     const format = req.nextUrl.searchParams.get("format") || "pdf";
 
-    // Get patient data
-    const patient = await PatientService.getPatientById(params.id);
+    const params = await segmentData.params;
 
-    // Get medical history
-    const medicalHistory = await MedicalHistoryService.getMedicalHistory(
-      params.id,
-      {
-        limit: 100,
-        sortOrder: "desc",
-      }
-    );
-
-    // Get lab results
-    const labResults = await LabResultsService.getLabResults(params.id, {
-      limit: 100,
-      sortOrder: "desc",
-    });
-
-    // Get vital signs
-    const vitalSigns = await VitalSignsService.getVitalSigns(params.id, {
-      limit: 100,
-      sortOrder: "desc",
-    });
-
-    // Get treatments
-    const treatments = await TreatmentService.getTreatments(params.id, {
-      limit: 100,
-      sortOrder: "desc",
-    });
+    const [patient, medicalHistory, labResults, vitalSigns, treatments] =
+      await Promise.all([
+        PatientService.getPatientById(params.id),
+        MedicalHistoryService.getMedicalHistory(params.id, {
+          limit: 100,
+          sortOrder: "desc",
+        }),
+        LabResultsService.getLabResults(params.id, {
+          limit: 100,
+          sortOrder: "desc",
+        }),
+        VitalSignsService.getVitalSigns(params.id, {
+          limit: 100,
+          sortOrder: "desc",
+        }),
+        TreatmentService.getTreatments(params.id, {
+          limit: 100,
+          sortOrder: "desc",
+        }),
+      ]);
 
     if (format === "csv") {
       const csvData = generateCSV(
@@ -98,94 +105,241 @@ function generateCSV(
   labResults: any[],
   vitalSigns: any[],
   treatments: any[]
-) {
-  let csv = "DONNÉES DU PATIENT\n";
-  csv += `ID,Prénom,Nom,Date de naissance,Sexe,Email,Téléphone,Adresse\n`;
-  csv += `${patient.id},${patient.firstname},${patient.lastname},${patient.birthdate},${patient.sex},${patient.email},${patient.phone},"${patient.address}"\n\n`;
+): string {
+  const escapeCsv = (value: unknown): string => {
+    const str = value === null || value === undefined ? "" : String(value);
+    if (str.includes('"') || str.includes(",") || str.includes("\n")) {
+      return `"${str.replace(/"/g, '""')}"`;
+    }
+    return str;
+  };
 
-  csv += "INFORMATIONS MÉDICALES\n";
-  csv += `Stade MRC,Statut,DFG,Protéinurie,Médecin référent,Dernière visite,Prochain rendez-vous\n`;
-  csv += `${patient.medicalInfo.stade},${patient.medicalInfo.status},${
-    patient.medicalInfo.dfg
-  },${patient.medicalInfo.proteinurie},${
-    patient.medicalInfo.medecin
-  },${new Date(patient.medicalInfo.lastvisite).toLocaleDateString()},${new Date(
-    patient.medicalInfo.nextvisite
-  ).toLocaleDateString()}\n\n`;
+  const separator = ",";
+  const lineBreak = "\n";
+  const sectionSeparator = lineBreak + lineBreak;
 
-  csv += "HISTORIQUE MÉDICAL\n";
-  csv += `Date,Type,Titre,Description,Médecin\n`;
-  medicalHistory.forEach((record) => {
-    csv += `${new Date(record.date).toLocaleDateString()},${record.type},"${
-      record.title
-    }","${record.description.replace(/"/g, '""')}",${record.medecin}\n`;
-  });
-  csv += "\n";
+  let csv = "";
 
-  csv += "RÉSULTATS D'ANALYSES\n";
-  csv += `Date,Laboratoire,Notes\n`;
-  labResults.forEach((result) => {
-    csv += `${new Date(result.date).toLocaleDateString()},${
-      result.labName || ""
-    },${result.notes || ""}\n`;
+  // 1. Informations patient
+  csv += "INFORMATIONS PATIENT" + lineBreak;
+  csv +=
+    [
+      "ID",
+      "Prénom",
+      "Nom",
+      "Date de naissance",
+      "Sexe",
+      "Email",
+      "Téléphone",
+      "Adresse",
+    ].join(separator) + lineBreak;
+  csv +=
+    [
+      escapeCsv(patient.id),
+      escapeCsv(patient.firstname),
+      escapeCsv(patient.lastname),
+      escapeCsv(patient.birthdate),
+      escapeCsv(patient.sex === "M" ? "Homme" : "Femme"),
+      escapeCsv(patient.email),
+      escapeCsv(patient.phone),
+      escapeCsv(patient.address),
+    ].join(separator) + lineBreak;
 
-    const parsedResults = JSON.parse(result.results);
-    csv += `Paramètre,Valeur,Unité,Référence Min,Référence Max,Anormal\n`;
-    parsedResults.forEach((r: any) => {
-      csv += `${r.name},${r.value},${r.unit},${r.referenceMin || ""},${
-        r.referenceMax || ""
-      },${r.isAbnormal ? "Oui" : "Non"}\n`;
+  // 2. Informations médicales
+  csv += sectionSeparator + "INFORMATIONS MÉDICALES" + lineBreak;
+  csv +=
+    [
+      "Stade MRC",
+      "Statut",
+      "DFG (ml/min)",
+      "Protéinurie (g/24h)",
+      "Médecin référent",
+      "Dernière visite",
+      "Prochain rendez-vous",
+    ].join(separator) + lineBreak;
+  csv +=
+    [
+      escapeCsv(patient.medicalInfo.stade),
+      escapeCsv(patient.medicalInfo.status),
+      escapeCsv(patient.medicalInfo.dfg),
+      escapeCsv(patient.medicalInfo.proteinurie),
+      escapeCsv(patient.medicalInfo.medecin),
+      escapeCsv(new Date(patient.medicalInfo.lastvisite).toLocaleDateString()),
+      escapeCsv(new Date(patient.medicalInfo.nextvisite).toLocaleDateString()),
+    ].join(separator) + lineBreak;
+
+  // 3. Historique médical
+  csv += sectionSeparator + "HISTORIQUE MÉDICAL" + lineBreak;
+  if (medicalHistory.length > 0) {
+    csv +=
+      ["Date", "Type", "Titre", "Description", "Médecin"].join(separator) +
+      lineBreak;
+    medicalHistory.forEach((record) => {
+      csv +=
+        [
+          escapeCsv(new Date(record.date).toLocaleDateString()),
+          escapeCsv(record.type),
+          escapeCsv(record.title),
+          escapeCsv(record.description),
+          escapeCsv(record.medecin),
+        ].join(separator) + lineBreak;
     });
-    csv += "\n";
-  });
+  } else {
+    csv += "Aucun historique médical enregistré" + lineBreak;
+  }
 
-  csv += "CONSTANTES VITALES\n";
-  csv += `Date,Notes\n`;
-  vitalSigns.forEach((sign) => {
-    csv += `${new Date(sign.date).toLocaleDateString()},${sign.notes || ""}\n`;
+  // 4. Résultats d'analyses
+  csv += sectionSeparator + "RÉSULTATS D'ANALYSES" + lineBreak;
+  if (labResults.length > 0) {
+    labResults.forEach((result, resultIndex) => {
+      if (resultIndex > 0) csv += lineBreak;
 
-    const parsedMeasurements = JSON.parse(sign.measurements);
-    csv += `Type,Valeur,Unité\n`;
-    parsedMeasurements.forEach((m: any) => {
-      csv += `${m.type},${m.value},${m.unit}\n`;
+      csv +=
+        `Analyse du ${new Date(result.date).toLocaleDateString()}` + lineBreak;
+      csv += ["Laboratoire", "Notes"].join(separator) + lineBreak;
+      csv +=
+        [
+          escapeCsv(result.labName || "Non spécifié"),
+          escapeCsv(result.notes || "Aucune note"),
+        ].join(separator) +
+        lineBreak +
+        lineBreak;
+
+      const parsedResults: LabResultItem[] =
+        typeof result.results === "string"
+          ? JSON.parse(result.results)
+          : result.results;
+
+      if (parsedResults.length > 0) {
+        csv +=
+          [
+            "Paramètre",
+            "Valeur",
+            "Unité",
+            "Valeurs de référence",
+            "Statut",
+          ].join(separator) + lineBreak;
+        parsedResults.forEach((r) => {
+          const referenceRange =
+            r.referenceMin !== undefined && r.referenceMax !== undefined
+              ? `${r.referenceMin} - ${r.referenceMax}`
+              : "N/A";
+
+          csv +=
+            [
+              escapeCsv(r.name),
+              escapeCsv(r.value),
+              escapeCsv(r.unit),
+              escapeCsv(referenceRange),
+              escapeCsv(r.isAbnormal ? "HORS NORME" : "Normal"),
+            ].join(separator) + lineBreak;
+        });
+      } else {
+        csv += "Aucun résultat d'analyse disponible" + lineBreak;
+      }
     });
-    csv += "\n";
-  });
+  } else {
+    csv += "Aucun résultat d'analyse enregistré" + lineBreak;
+  }
 
-  csv += "TRAITEMENTS\n";
-  csv += `Médicament,Catégorie,Posologie,Fréquence,Date de début,Date de fin,Statut,Médecin,Notes,Interactions\n`;
-  treatments.forEach((treatment) => {
-    csv += `${treatment.medicament},${treatment.category},${
-      treatment.posologie
-    },${treatment.frequence},${new Date(treatment.date).toLocaleDateString()},${
-      treatment.endDate ? new Date(treatment.endDate).toLocaleDateString() : ""
-    },${treatment.status},${treatment.medecin},${treatment.notes || ""},${
-      treatment.interactions ? "Oui" : "Non"
-    }\n`;
-  });
+  // 5. Constantes vitales
+  csv += sectionSeparator + "CONSTANTES VITALES" + lineBreak;
+  if (vitalSigns.length > 0) {
+    vitalSigns.forEach((sign, signIndex) => {
+      if (signIndex > 0) csv += lineBreak;
+
+      csv +=
+        `Mesures du ${new Date(sign.date).toLocaleDateString()}` + lineBreak;
+      csv += ["Notes"].join(separator) + lineBreak;
+      csv += escapeCsv(sign.notes || "Aucune note") + lineBreak + lineBreak;
+
+      const parsedMeasurements: VitalMeasurement[] =
+        typeof sign.measurements === "string"
+          ? JSON.parse(sign.measurements)
+          : sign.measurements;
+
+      if (parsedMeasurements.length > 0) {
+        csv += ["Type", "Valeur", "Unité"].join(separator) + lineBreak;
+        parsedMeasurements.forEach((m) => {
+          csv +=
+            [escapeCsv(m.type), escapeCsv(m.value), escapeCsv(m.unit)].join(
+              separator
+            ) + lineBreak;
+        });
+      } else {
+        csv += "Aucune mesure disponible" + lineBreak;
+      }
+    });
+  } else {
+    csv += "Aucune constante vitale enregistrée" + lineBreak;
+  }
+
+  // 6. Traitements
+  csv += sectionSeparator + "TRAITEMENTS" + lineBreak;
+  if (treatments.length > 0) {
+    csv +=
+      [
+        "Médicament",
+        "Catégorie",
+        "Posologie",
+        "Fréquence",
+        "Date de début",
+        "Date de fin",
+        "Statut",
+        "Médecin",
+        "Notes",
+        "Interactions",
+      ].join(separator) + lineBreak;
+
+    treatments.forEach((treatment) => {
+      csv +=
+        [
+          escapeCsv(treatment.medicament),
+          escapeCsv(treatment.category),
+          escapeCsv(treatment.posologie),
+          escapeCsv(treatment.frequence),
+          escapeCsv(new Date(treatment.date).toLocaleDateString()),
+          escapeCsv(
+            treatment.endDate
+              ? new Date(treatment.endDate).toLocaleDateString()
+              : "En cours"
+          ),
+          escapeCsv(treatment.status),
+          escapeCsv(treatment.medecin),
+          escapeCsv(treatment.notes || "Aucune note"),
+          escapeCsv(treatment.interactions ? "OUI ⚠️" : "Non"),
+        ].join(separator) + lineBreak;
+    });
+  } else {
+    csv += "Aucun traitement enregistré" + lineBreak;
+  }
 
   return csv;
 }
 
-// Function to generate PDF
 async function generatePDF(
   patient: any,
   medicalHistory: any[],
   labResults: any[],
   vitalSigns: any[],
   treatments: any[]
-) {
-  return new Promise<Buffer>((resolve, reject) => {
+): Promise<Buffer> {
+  return new Promise((resolve, reject) => {
     try {
       const chunks: Buffer[] = [];
-      const doc = new PDFDocument({ margin: 50 });
+      const doc = new PDFDocument({ margin: 50, size: "A4" });
 
-      // Collect PDF data chunks
       doc.on("data", (chunk) => chunks.push(chunk));
       doc.on("end", () => resolve(Buffer.concat(chunks)));
       doc.on("error", reject);
 
-      // Add patient information
+      const addSection = (title: string, content: () => void) => {
+        doc.addPage();
+        doc.fontSize(16).text(title, { align: "center" });
+        doc.moveDown();
+        content();
+      };
+
       doc.fontSize(20).text("Dossier Patient", { align: "center" });
       doc.moveDown();
 
@@ -219,170 +373,155 @@ async function generatePDF(
           patient.medicalInfo.nextvisite
         ).toLocaleDateString()}`
       );
-      doc.moveDown();
 
-      // Add medical history
-      doc.addPage();
-      doc.fontSize(16).text("Historique médical", { align: "center" });
-      doc.moveDown();
-
-      medicalHistory.forEach((record, index) => {
-        if (index > 0) doc.moveDown(0.5);
-        doc
-          .fontSize(12)
-          .text(`Date: ${new Date(record.date).toLocaleDateString()}`);
-        doc.text(`Type: ${record.type}`);
-        doc.text(`Titre: ${record.title}`);
-        doc.text(`Description: ${record.description}`);
-        doc.text(`Médecin: ${record.medecin}`);
-
-        if (index < medicalHistory.length - 1) {
-          doc.moveDown(0.5);
+      addSection("Historique médical", () => {
+        medicalHistory.forEach((record, index) => {
+          if (index > 0) doc.moveDown(0.5);
           doc
-            .lineTo(50, doc.y)
-            .lineTo(doc.page.width - 50, doc.y)
-            .stroke();
-        }
+            .fontSize(12)
+            .text(`Date: ${new Date(record.date).toLocaleDateString()}`);
+          doc.text(`Type: ${record.type}`);
+          doc.text(`Titre: ${record.title}`);
+          doc.text(`Description: ${record.description}`);
+          doc.text(`Médecin: ${record.medecin}`);
+
+          if (index < medicalHistory.length - 1) {
+            doc.moveDown(0.5);
+            doc
+              .moveTo(50, doc.y)
+              .lineTo(doc.page.width - 50, doc.y)
+              .stroke();
+          }
+        });
       });
 
-      // Add lab results
-      doc.addPage();
-      doc.fontSize(16).text("Résultats d'analyses", { align: "center" });
-      doc.moveDown();
+      addSection("Résultats d'analyses", () => {
+        labResults.forEach((result, index) => {
+          if (index > 0) doc.moveDown(0.5);
+          doc
+            .fontSize(12)
+            .text(`Date: ${new Date(result.date).toLocaleDateString()}`);
+          if (result.labName) doc.text(`Laboratoire: ${result.labName}`);
+          if (result.notes) doc.text(`Notes: ${result.notes}`);
+          doc.moveDown(0.5);
 
-      labResults.forEach((result, index) => {
-        if (index > 0) doc.moveDown(0.5);
-        doc
-          .fontSize(12)
-          .text(`Date: ${new Date(result.date).toLocaleDateString()}`);
-        if (result.labName) doc.text(`Laboratoire: ${result.labName}`);
-        if (result.notes) doc.text(`Notes: ${result.notes}`);
-        doc.moveDown(0.5);
+          const parsedResults: LabResultItem[] =
+            typeof result.results === "string"
+              ? JSON.parse(result.results)
+              : result.results;
 
-        // Parse results JSON
-        const parsedResults = JSON.parse(result.results);
+          const tableTop = doc.y;
+          const tableLeft = 50;
+          const colWidths = [120, 80, 80, 80, 80];
+          const rowHeight = 20;
 
-        // Create a table for results
-        const tableTop = doc.y;
-        const tableLeft = 50;
-        const colWidths = [120, 80, 80, 80, 80];
-        const rowHeight = 20;
-
-        // Draw table header
-        doc.font("Helvetica-Bold");
-        doc.text("Paramètre", tableLeft, tableTop);
-        doc.text("Valeur", tableLeft + colWidths[0], tableTop);
-        doc.text("Unité", tableLeft + colWidths[0] + colWidths[1], tableTop);
-        doc.text(
-          "Référence",
-          tableLeft + colWidths[0] + colWidths[1] + colWidths[2],
-          tableTop
-        );
-        doc.text(
-          "Anormal",
-          tableLeft + colWidths[0] + colWidths[1] + colWidths[2] + colWidths[3],
-          tableTop
-        );
-
-        // Draw table rows
-        doc.font("Helvetica");
-        parsedResults.forEach((r: any, i: number) => {
-          const rowY = tableTop + rowHeight + i * rowHeight;
-          doc.text(r.name, tableLeft, rowY);
-          doc.text(r.value.toString(), tableLeft + colWidths[0], rowY);
-          doc.text(r.unit, tableLeft + colWidths[0] + colWidths[1], rowY);
-
-          const refRange =
-            r.referenceMin !== undefined && r.referenceMax !== undefined
-              ? `${r.referenceMin} - ${r.referenceMax}`
-              : "";
+          doc.font("Helvetica-Bold");
+          doc.text("Paramètre", tableLeft, tableTop);
+          doc.text("Valeur", tableLeft + colWidths[0], tableTop);
+          doc.text("Unité", tableLeft + colWidths[0] + colWidths[1], tableTop);
           doc.text(
-            refRange,
+            "Référence",
             tableLeft + colWidths[0] + colWidths[1] + colWidths[2],
-            rowY
+            tableTop
           );
-
           doc.text(
-            r.isAbnormal ? "Oui" : "Non",
+            "Anormal",
             tableLeft +
               colWidths[0] +
               colWidths[1] +
               colWidths[2] +
               colWidths[3],
-            rowY
+            tableTop
           );
+
+          doc.font("Helvetica");
+          parsedResults.forEach((r, i) => {
+            const rowY = tableTop + rowHeight + i * rowHeight;
+            doc.text(r.name, tableLeft, rowY);
+            doc.text(r.value.toString(), tableLeft + colWidths[0], rowY);
+            doc.text(r.unit, tableLeft + colWidths[0] + colWidths[1], rowY);
+
+            const refRange =
+              r.referenceMin !== undefined && r.referenceMax !== undefined
+                ? `${r.referenceMin} - ${r.referenceMax}`
+                : "";
+            doc.text(
+              refRange,
+              tableLeft + colWidths[0] + colWidths[1] + colWidths[2],
+              rowY
+            );
+
+            doc.text(
+              r.isAbnormal ? "Oui" : "Non",
+              tableLeft +
+                colWidths[0] +
+                colWidths[1] +
+                colWidths[2] +
+                colWidths[3],
+              rowY
+            );
+          });
+
+          doc.y = tableTop + rowHeight + parsedResults.length * rowHeight + 10;
+
+          if (index < labResults.length - 1) {
+            doc.moveDown(0.5);
+            doc
+              .moveTo(50, doc.y)
+              .lineTo(doc.page.width - 50, doc.y)
+              .stroke();
+          }
         });
-
-        doc.y = tableTop + rowHeight + parsedResults.length * rowHeight + 10;
-
-        if (index < labResults.length - 1) {
-          doc.moveDown(0.5);
-          doc
-            .lineTo(50, doc.y)
-            .lineTo(doc.page.width - 50, doc.y)
-            .stroke();
-        }
       });
 
-      // Add treatments
-      doc.addPage();
-      doc.fontSize(16).text("Traitements", { align: "center" });
-      doc.moveDown();
-
-      treatments.forEach((treatment, index) => {
-        if (index > 0) doc.moveDown(0.5);
-        doc
-          .fontSize(12)
-          .text(`Médicament: ${treatment.medicament} (${treatment.category})`);
-        doc.text(`Posologie: ${treatment.posologie}`);
-        doc.text(`Fréquence: ${treatment.frequence}`);
-        doc.text(
-          `Date de début: ${new Date(treatment.date).toLocaleDateString()}`
-        );
-        if (treatment.endDate)
+      addSection("Traitements", () => {
+        treatments.forEach((treatment, index) => {
+          if (index > 0) doc.moveDown(0.5);
+          doc
+            .fontSize(12)
+            .text(
+              `Médicament: ${treatment.medicament} (${treatment.category})`
+            );
+          doc.text(`Posologie: ${treatment.posologie}`);
+          doc.text(`Fréquence: ${treatment.frequence}`);
           doc.text(
-            `Date de fin: ${new Date(treatment.endDate).toLocaleDateString()}`
+            `Date de début: ${new Date(treatment.date).toLocaleDateString()}`
           );
-        doc.text(`Statut: ${treatment.status}`);
-        doc.text(`Médecin: ${treatment.medecin}`);
-        if (treatment.notes) doc.text(`Notes: ${treatment.notes}`);
-        if (treatment.interactions)
-          doc
-            .text(`Interactions potentielles: Oui`, { continued: true })
-            .fillColor("red")
-            .text(" ⚠️");
-        doc.fillColor("black");
+          if (treatment.endDate)
+            doc.text(
+              `Date de fin: ${new Date(treatment.endDate).toLocaleDateString()}`
+            );
+          doc.text(`Statut: ${treatment.status}`);
+          doc.text(`Médecin: ${treatment.medecin}`);
+          if (treatment.notes) doc.text(`Notes: ${treatment.notes}`);
+          if (treatment.interactions)
+            doc
+              .text(`Interactions potentielles: Oui`, { continued: true })
+              .fillColor("red")
+              .text(" ⚠️");
+          doc.fillColor("black");
 
-        if (index < treatments.length - 1) {
-          doc.moveDown(0.5);
-          doc
-            .lineTo(50, doc.y)
-            .lineTo(doc.page.width - 50, doc.y)
-            .stroke();
-        }
+          if (index < treatments.length - 1) {
+            doc.moveDown(0.5);
+            doc
+              .moveTo(50, doc.y)
+              .lineTo(doc.page.width - 50, doc.y)
+              .stroke();
+          }
+        });
       });
-
-      // Add footer with date
 
       const pages = doc.bufferedPageRange();
       for (let i = 0; i < pages.count; i++) {
         doc.switchToPage(i);
 
-        // Add page number
-        doc
-          .fontSize(8)
-          .text(`Page ${i + 1} sur ${pages.count}`, 50, doc.page.height - 50, {
-            align: "center",
-          });
-
-        // Add generation date
         doc
           .fontSize(8)
           .text(
-            `Document généré le ${new Date().toLocaleDateString()} à ${new Date().toLocaleTimeString()}`,
+            `Page ${i + 1} sur ${pages.count} • Généré le ${new Date().toLocaleDateString("fr-FR")} à ${new Date().toLocaleTimeString("fr-FR")}`,
             50,
-            doc.page.height - 40,
-            { align: "center" }
+            doc.page.height - 30,
+            { width: doc.page.width - 100, align: "center" }
           );
       }
 

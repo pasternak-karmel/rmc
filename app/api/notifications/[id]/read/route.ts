@@ -1,6 +1,6 @@
 import { db } from "@/db";
-import { notifications } from "@/db/schema";
-import { ApiError, handleApiError } from "@/lib/api-error";
+import { Notifications } from "@/db/schema";
+import { handleApiError } from "@/lib/api-error";
 import { getAuthenticatedUser } from "@/lib/auth-utils";
 import { rateLimit } from "@/lib/rate-limit";
 import { and, eq } from "drizzle-orm";
@@ -18,23 +18,41 @@ export async function POST(req: NextRequest, segmentData: { params: Params }) {
     if (rateLimitResult) return rateLimitResult;
 
     const user = await getAuthenticatedUser(req);
+    if (!user || !user.id) {
+      return Response.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     const params = await segmentData.params;
+    if (!params.id) {
+      return Response.json(
+        { error: "Notification ID is required" },
+        { status: 400 }
+      );
+    }
 
     const [notification] = await db
       .select()
-      .from(notifications)
+      .from(Notifications)
       .where(
-        and(eq(notifications.id, params.id), eq(notifications.userId, user.id))
+        and(eq(Notifications.id, params.id), eq(Notifications.userId, user.id))
       );
 
     if (!notification) {
-      throw ApiError.notFound("Notification not found");
+      return Response.json(
+        { error: "Notification not found" },
+        { status: 404 }
+      );
     }
 
     await db
-      .update(notifications)
-      .set({ read: true })
-      .where(eq(notifications.id, params.id));
+      .update(Notifications)
+      .set({
+        read: true,
+        updatedAt: new Date(),
+      })
+      .where(eq(Notifications.id, params.id));
+
+    return Response.json({ success: true });
   } catch (error) {
     return handleApiError(error);
   }

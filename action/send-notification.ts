@@ -25,30 +25,62 @@ type NotificationInput = z.infer<typeof NotificationSchema>;
 
 export async function sendNotificationEmail(input: NotificationInput) {
   try {
-    const notificationPayload = NotificationSchema.parse(input);
-    const { data, error } = await resend.emails.send({
-      from: `${notificationPayload.appName || "HealthCare"} <noreply@glaceandconfort.com>`,
-      to: notificationPayload.to,
-      subject: notificationPayload.subject,
-      react: NotificationTemplate({
-        to: notificationPayload.to,
-        notificationTitle: notificationPayload.notificationTitle,
-        notificationContent: notificationPayload.notificationContent,
-        appName: notificationPayload.appName,
-        logoUrl: notificationPayload.logoUrl,
-        userName: notificationPayload.userName,
-        actionLink: notificationPayload.actionLink,
-        actionText: notificationPayload.actionText,
-        supportEmail: notificationPayload.supportEmail,
-        year: new Date().getFullYear(),
-      }),
-    });
-
-    if (error) {
-      return { success: false, error: error.message };
+    // Validate input
+    const validationResult = NotificationSchema.safeParse(input);
+    if (!validationResult.success) {
+      return {
+        success: false,
+        error: "Invalid input data",
+        details: validationResult.error.errors,
+      };
     }
 
-    return { success: true, data };
+    const notificationPayload = validationResult.data;
+
+    // Check if Resend API key is configured
+    if (!process.env.RESEND_API_KEY) {
+      console.error("RESEND_API_KEY environment variable is not set");
+      return {
+        success: false,
+        error: "Email service is not configured properly",
+      };
+    }
+
+    try {
+      const { data, error } = await resend.emails.send({
+        from: `${notificationPayload.appName || "HealthCare"} <noreply@glaceandconfort.com>`,
+        to: notificationPayload.to,
+        subject: notificationPayload.subject,
+        react: NotificationTemplate({
+          to: notificationPayload.to,
+          notificationTitle: notificationPayload.notificationTitle,
+          notificationContent: notificationPayload.notificationContent,
+          appName: notificationPayload.appName,
+          logoUrl: notificationPayload.logoUrl,
+          userName: notificationPayload.userName,
+          actionLink: notificationPayload.actionLink,
+          actionText: notificationPayload.actionText,
+          supportEmail: notificationPayload.supportEmail,
+          year: new Date().getFullYear(),
+        }),
+      });
+
+      if (error) {
+        console.error("Resend API error:", error);
+        return { success: false, error: error.message };
+      }
+
+      return { success: true, data };
+    } catch (error) {
+      console.error("Error sending email via Resend:", error);
+      return {
+        success: false,
+        error:
+          error instanceof Error
+            ? error.message
+            : "Unknown email service error",
+      };
+    }
   } catch (error) {
     console.error("Error sending notification email:", error);
 
@@ -60,6 +92,12 @@ export async function sendNotificationEmail(input: NotificationInput) {
       };
     }
 
-    return { success: false, error: "Failed to send email notification" };
+    return {
+      success: false,
+      error:
+        error instanceof Error
+          ? error.message
+          : "Failed to send email notification",
+    };
   }
 }

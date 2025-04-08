@@ -9,12 +9,12 @@ import {
 } from "@/db/schema";
 import { ApiError } from "@/lib/api-error";
 import { auth } from "@/lib/auth";
-import { deleteCache, withCache } from "@/lib/cache";
-import { headers } from "next/headers";
-import { and, asc, desc, eq, ilike, inArray, like, or, sql } from "drizzle-orm";
-import { CreateWorkflowInput, WorkflowQueryParams } from "@/schemas/workflow";
-import { v4 as uuidv4 } from "uuid";
+import { withCache } from "@/lib/cache";
 import { calculateAge, formatDate } from "@/lib/utils";
+import { CreateWorkflowInput, WorkflowQueryParams } from "@/schemas/workflow";
+import { and, asc, desc, eq, ilike, or, sql } from "drizzle-orm";
+import { headers } from "next/headers";
+import { v4 as uuidv4 } from "uuid";
 
 export class WorkflowService {
   static async getWorkflows(params?: WorkflowQueryParams) {
@@ -96,15 +96,13 @@ export class WorkflowService {
             );
 
           const [{ tasks }] = await db
-          .select({ tasks: sql<number>`count(*)` })
-          .from(workflowPatient)
-          .innerJoin(
-            taskTable,
-            eq(taskTable.patientId, workflowPatient.patientId)
-          )
-          .where(
-              eq(workflowPatient.workflowId, workflow.id)
-          );
+            .select({ tasks: sql<number>`count(*)` })
+            .from(workflowPatient)
+            .innerJoin(
+              taskTable,
+              eq(taskTable.patientId, workflowPatient.patientId)
+            )
+            .where(eq(workflowPatient.workflowId, workflow.id));
 
           return {
             ...workflow,
@@ -198,7 +196,7 @@ export class WorkflowService {
               )
             );
 
-            const [{ completedTasks }] = await db
+          const [{ completedTasks }] = await db
             .select({ completedTasks: sql<number>`count(*)` })
             .from(workflowPatient)
             .innerJoin(
@@ -305,11 +303,12 @@ export class WorkflowService {
         })
         .from(workflowPatient)
         .innerJoin(patient, eq(patient.id, workflowPatient.patientId))
-        .innerJoin(taskTable, eq(taskTable.patientId, workflowPatient.patientId))
+        .innerJoin(
+          taskTable,
+          eq(taskTable.patientId, workflowPatient.patientId)
+        )
         .where(eq(workflowPatient.workflowId, id))
-        .orderBy(desc(taskTable.dueDate))
-        ;
-
+        .orderBy(desc(taskTable.dueDate));
       if (!result) {
         throw ApiError.notFound(`Workflow with ID ${id} not found`);
       }
@@ -323,10 +322,8 @@ export class WorkflowService {
             initials: item.initials,
           };
 
-          const { patientId, patient, avatar, initials, ...rest } = item;
-
           return {
-            ...rest,
+            ...item,
             patient: patientData,
             dueDate: formatDate(item.dueDate),
           };
@@ -334,7 +331,6 @@ export class WorkflowService {
       );
 
       return data;
-    
     });
   }
 
@@ -378,10 +374,8 @@ export class WorkflowService {
             initials: item.initials,
           };
 
-          const { patientId, patient, avatar, initials, ...rest } = item;
-
           return {
-            ...rest,
+            ...item,
             patient: patientData,
             date: formatDate(item.createdAt),
           };

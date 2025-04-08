@@ -27,7 +27,7 @@ export default function SignUpPage() {
       </div>
       <div className="bg-muted relative hidden lg:block">
         <Image
-          src="/images/welcome.jpeg"
+          src="/images/welcome.png"
           width={1000}
           height={1000}
           alt="Welcome picture"

@@ -74,9 +74,8 @@ export async function POST(req: NextRequest, segmentData: { params: Params }) {
       medecin: body.medecin || user.name || "Unknown",
     });
 
-    const result = await MedicalRecordService.createMedicalRecord(
-      validatedData
-    );
+    const result =
+      await MedicalRecordService.createMedicalRecord(validatedData);
 
     return Response.json(result, { status: 201 });
   } catch (error) {

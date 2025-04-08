@@ -51,13 +51,11 @@ export class LabResultsService {
 
     const offset = (page - 1) * limit;
 
-    // Build the cache key based on query parameters
     const cacheKey = `patients:${patientId}:labs:${page}:${limit}:${
       startDate || ""
     }:${endDate || ""}:${abnormalOnly}:${sortOrder}`;
 
     return withCache(cacheKey, async () => {
-      // Check if patient exists
       const [patientExists] = await db
         .select({ id: patient.id })
         .from(patient)
@@ -67,7 +65,6 @@ export class LabResultsService {
         throw ApiError.notFound(`Patient with ID ${patientId} not found`);
       }
 
-      // Build the where clause based on filters
       let whereClause = eq(labResults.patientId, patientId);
       const filterConditions = [whereClause];
 
@@ -87,11 +84,9 @@ export class LabResultsService {
 
       whereClause = and(...filterConditions) as SQL<unknown>;
 
-      // Build the order by clause
       const orderBy =
         sortOrder === "asc" ? asc(labResults.date) : desc(labResults.date);
 
-      // Execute the query
       const results = await db
         .select()
         .from(labResults)
@@ -100,7 +95,6 @@ export class LabResultsService {
         .limit(limit)
         .offset(offset);
 
-      // Get total count for pagination
       const [{ count }] = await db
         .select({ count: sql<number>`count(*)` })
         .from(labResults)
@@ -147,7 +141,6 @@ export class LabResultsService {
     const now = new Date();
 
     try {
-      // Check if patient exists
       const [patientExists] = await db
         .select({ id: patient.id })
         .from(patient)
@@ -157,7 +150,6 @@ export class LabResultsService {
         throw ApiError.notFound(`Patient with ID ${patientId} not found`);
       }
 
-      // Insert lab result
       await db.insert(labResults).values({
         id,
         patientId,
@@ -169,10 +161,8 @@ export class LabResultsService {
         updatedAt: now,
       });
 
-      // Invalidate cache
       await deleteCacheByPattern(`patients:${patientId}:labs:*`);
 
-      // Get the created record
       return this.getLabResultById(id);
     } catch (error) {
       console.error("Error creating lab result:", error);
@@ -200,10 +190,8 @@ export class LabResultsService {
     const now = new Date();
 
     try {
-      // Check if record exists
       const existingResult = await this.getLabResultById(id);
 
-      // Prepare update fields
       const updateFields: any = {
         updatedAt: now,
       };
@@ -214,17 +202,14 @@ export class LabResultsService {
         updateFields.labName = data.labName || null;
       if (data.notes !== undefined) updateFields.notes = data.notes || null;
 
-      // Update record
       await db
         .update(labResults)
         .set(updateFields)
         .where(eq(labResults.id, id));
 
-      // Invalidate cache
       await deleteCache(`lab-results:${id}`);
       await deleteCacheByPattern(`patients:${existingResult.patientId}:labs:*`);
 
-      // Get the updated record
       return this.getLabResultById(id);
     } catch (error) {
       console.error("Error updating lab result:", error);
@@ -242,13 +227,10 @@ export class LabResultsService {
    */
   static async deleteLabResult(id: string) {
     try {
-      // Check if record exists
       const existingResult = await this.getLabResultById(id);
 
-      // Delete record
       await db.delete(labResults).where(eq(labResults.id, id));
 
-      // Invalidate cache
       await deleteCache(`lab-results:${id}`);
       await deleteCacheByPattern(`patients:${existingResult.patientId}:labs:*`);
 
@@ -273,7 +255,6 @@ export class LabResultsService {
     return withCache(
       cacheKey,
       async () => {
-        // Check if patient exists
         const [patientExists] = await db
           .select({ id: patient.id })
           .from(patient)
@@ -283,7 +264,6 @@ export class LabResultsService {
           throw ApiError.notFound(`Patient with ID ${patientId} not found`);
         }
 
-        // Get all lab results for this patient
         const results = await db
           .select({
             id: labResults.id,
@@ -294,12 +274,12 @@ export class LabResultsService {
           .where(eq(labResults.patientId, patientId))
           .orderBy(asc(labResults.date));
 
-        // Extract the specific test values from each result
         const trends = results
           .map((result) => {
-            const parsedResults = JSON.parse(
-              result.results as unknown as string
-            );
+            const parsedResults =
+              typeof result.results === "string"
+                ? JSON.parse(result.results)
+                : result.results;
             const testResult = parsedResults.find(
               (r: LabTestResult) =>
                 r.name.toLowerCase() === testName.toLowerCase()
@@ -319,7 +299,7 @@ export class LabResultsService {
         return trends;
       },
       300
-    ); // Cache for 5 minutes
+    );
   }
 
   /**
@@ -331,7 +311,6 @@ export class LabResultsService {
     return withCache(
       cacheKey,
       async () => {
-        // Check if patient exists
         const [patientExists] = await db
           .select({ id: patient.id })
           .from(patient)
@@ -341,7 +320,6 @@ export class LabResultsService {
           throw ApiError.notFound(`Patient with ID ${patientId} not found`);
         }
 
-        // Get all lab results for this patient
         const results = await db
           .select({
             results: labResults.results,
@@ -349,11 +327,13 @@ export class LabResultsService {
           .from(labResults)
           .where(eq(labResults.patientId, patientId));
 
-        // Extract all unique test names
         const testNames = new Set<string>();
 
         results.forEach((result) => {
-          const parsedResults = JSON.parse(result.results as unknown as string);
+          const parsedResults =
+            typeof result.results === "string"
+              ? JSON.parse(result.results)
+              : result.results;
           parsedResults.forEach((r: LabTestResult) => {
             testNames.add(r.name);
           });
@@ -362,6 +342,6 @@ export class LabResultsService {
         return Array.from(testNames).sort();
       },
       300
-    ); // Cache for 5 minutes
+    );
   }
 }

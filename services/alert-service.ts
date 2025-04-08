@@ -1,10 +1,10 @@
 import { db } from "@/db";
-import { historique, infoMedical, patient } from "@/db/schema";
+import { historique } from "@/db/schema";
 import { ApiError } from "@/lib/api-error";
 import { auth } from "@/lib/auth";
-import { deleteCache, withCache } from "@/lib/cache";
+import { withCache } from "@/lib/cache";
+import { eq } from "drizzle-orm";
 import { headers } from "next/headers";
-import { and, asc, desc, eq, ilike, inArray, like, or, sql } from "drizzle-orm";
 
 export class AlertService {
   static async getAlertById(id: string) {

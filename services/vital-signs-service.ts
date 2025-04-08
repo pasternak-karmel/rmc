@@ -297,9 +297,10 @@ export class VitalSignsService {
         // Extract the specific vital sign values from each record
         const trends = records
           .map((record) => {
-            const parsedMeasurements = JSON.parse(
-              record.measurements as unknown as string
-            );
+            const parsedMeasurements =
+              typeof record.measurements === "string"
+                ? JSON.parse(record.measurements)
+                : record.measurements;
             const measurement = parsedMeasurements.find(
               (m: VitalSignData) => m.type.toLowerCase() === type.toLowerCase()
             );
@@ -349,9 +350,15 @@ export class VitalSignsService {
         const types = new Set<string>();
 
         records.forEach((record) => {
-          const parsedMeasurements = JSON.parse(
-            record.measurements as unknown as string
-          );
+          // const parsedMeasurements = JSON.parse(
+          //   record.measurements as unknown as string
+          // );
+
+          const parsedMeasurements =
+            typeof record.measurements === "string"
+              ? JSON.parse(record.measurements)
+              : record.measurements;
+
           parsedMeasurements.forEach((m: VitalSignData) => {
             types.add(m.type);
           });

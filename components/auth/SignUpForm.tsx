@@ -130,7 +130,7 @@ export default function SignUpForm() {
           />
 
           <Button disabled={isPending} type="submit" className="w-full">
-            {isPending ? "Inscription en cours..." : "S'inscrire'"}
+            {isPending ? "Inscription en cours..." : "S'inscrire"}
           </Button>
 
           <div className="text-center text-sm">
