@@ -174,6 +174,26 @@ async function fetchUpcomingAppointments(days = 7): Promise<Patient[]> {
   return response.json();
 }
 
+async function fetchTasksAndAlerts(id: string): Promise<any> {
+  const response = await fetch(`/api/patients/${id}/tasks-and-alerts`);
+
+  if (!response.ok) {
+    const errorData = await response.json();
+    throw new Error(errorData.error || "Failed to fetch tasks and alerts");
+  }
+  return response.json();
+
+}
+
+export function useFetchTasksAndAlerts(id: string) {
+  return useQuery({
+    queryKey: ["patients", id, "tasks-and-alerts"],
+    queryFn: () => fetchTasksAndAlerts(id),
+    staleTime: 1000 * 60 * 5, // 5 minutes
+    // enabled: !!id,
+  });
+}
+
 // Hook for patient listing with filters and pagination
 export function usePatientList(
   params: PatientQueryParams = {},

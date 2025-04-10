@@ -16,7 +16,7 @@ interface LabResult {
   id: string;
   patientId: string;
   date: string;
-  results: string; // JSON string of LabTestResult[]
+  results: string; 
   labName?: string;
   notes?: string;
   createdAt: string;

@@ -16,7 +16,6 @@ import {
   ClipboardList,
   Loader2,
   PlusCircle,
-  Settings,
   Users,
 } from "lucide-react";
 import Link from "next/link";
@@ -92,14 +91,8 @@ export default function WorkflowsPage() {
                   Mis à jour {workflow.lastUpdated}
                 </div>
               </CardContent>
-              <CardFooter className="flex justify-between">
-                <Button variant="outline" size="sm" asChild>
-                  <Link href={`/workflows/${workflow.id}/parametres`}>
-                    <Settings className="mr-2 h-4 w-4" />
-                    Configurer
-                  </Link>
-                </Button>
-                <Button size="sm" asChild>
+              <CardFooter className="flex">
+                <Button size="sm" asChild className="ml-auto">
                   <Link href={`/workflows/${workflow.id}`}>
                     Gérer
                     <ArrowRight className="ml-2 h-4 w-4" />

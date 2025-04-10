@@ -1,3 +1,4 @@
+import { sendNotificationEmail } from "@/action/send-notification";
 import { db } from "@/db";
 import { user } from "@/db/auth-schema";
 import { appointments, patient, scheduledTasks } from "@/db/schema";
@@ -271,6 +272,7 @@ export class AppointmentService {
           id: patient.id,
           firstname: patient.firstname,
           lastname: patient.lastname,
+          email: patient.email,
         })
         .from(patient)
         .where(eq(patient.id, patientId));
@@ -353,6 +355,13 @@ export class AppointmentService {
         });
       }
 
+      await sendNotificationEmail({
+        to: patientExists.email,
+        subject: "Nouvel rendez-vous",
+        notificationTitle: "Nouvel rendez-vous programmé",
+        notificationContent: `Nouvel rendez-vous programmé avec ${patientExists.firstname} ${patientExists.lastname} le ${appointmentDate.toLocaleDateString()} à ${appointmentDate.toLocaleTimeString()}`,
+        appName: "HealthCare",
+      });
       await NotificationService.createNotification({
         userId: doctorId,
         patientId,

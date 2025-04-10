@@ -6,6 +6,7 @@ import {
   infoMedical,
   patient,
   patientTraitement,
+  tasks,
 } from "@/db/schema";
 import { ApiError } from "@/lib/api-error";
 import { auth } from "@/lib/auth";
@@ -852,6 +853,66 @@ export class PatientService {
     } catch (error) {
       console.error("Error getting patient treatments:", error);
       throw ApiError.internalServer("Failed to get patient treatments");
+    }
+  }
+
+  /**
+   * get patient tasks and alerts
+   * @param id
+   * @returns
+   */
+  static async getPatientTasksAndAlerts(id: string) {
+    try {
+      const patientData = await db
+        .select({
+          id: patient.id,
+          name: sql<string>`${patient.firstname} || ' ' || ${patient.lastname}`,
+          avatar: sql<string>`'/placeholder.svg?height=40&width=40'`,
+          initials: sql<string>`substring(${patient.firstname}, 1, 1) || substring(${patient.lastname}, 1, 1)`,
+        })
+        .from(patient)
+        .where(eq(patient.id, id));
+      if (patientData.length === 0) {
+        throw ApiError.notFound(`Patient with ID ${id} not found`);
+      }
+      const tasksData = await db
+        .select({
+          id: tasks.id,
+          title: tasks.title,
+          dueDate: tasks.dueDate,
+          priority: tasks.priority,
+          completed: tasks.completed,
+          assignedTo: tasks.assignedTo,
+        })
+        .from(tasks)
+        .where(eq(tasks.patientId, id))
+        .orderBy(desc(tasks.dueDate));
+
+      const alertsData = await db
+        .select({
+          id: historique.id,
+          type: historique.alertType,
+          message: historique.description,
+          createdAt: historique.createdAt,
+          resolved: historique.isResolved,
+        })
+        .from(historique)
+        .where(eq(historique.patientId, id));
+
+      return {
+        tasks: tasksData.map((task) => ({
+          ...task,
+          dueDate: formatDate(task.dueDate),
+        })),
+        alerts: alertsData.map((alert) => ({
+          ...alert,
+          date: formatDate(alert.createdAt),
+        })),
+        patient: patientData[0],
+      };
+    } catch (error) {
+      console.error("Error getting patient tasks and alerts:", error);
+      throw ApiError.internalServer("Failed to get patient tasks and alerts");
     }
   }
 }

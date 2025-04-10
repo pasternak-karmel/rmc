@@ -19,6 +19,10 @@ import {
   sql,
 } from "drizzle-orm";
 import { v4 as uuidv4 } from "uuid";
+import { callGeminiAI } from "./gemini-ai";
+import { LabResultsService } from "./lab-results-service";
+import { PatientService } from "./patient-service";
+import { TreatmentService } from "./treatment-service";
 
 export interface ReportFilters {
   patientId?: string;
@@ -250,7 +254,6 @@ export class ReportService {
     } = data;
 
     try {
-      // Check if patient exists
       const [patientExists] = await db
         .select({ id: patient.id })
         .from(patient)
@@ -260,7 +263,6 @@ export class ReportService {
         throw ApiError.notFound(`Patient with ID ${patientId} not found`);
       }
 
-      // Check if doctor exists
       const [doctorExists] = await db
         .select({ id: user.id })
         .from(user)
@@ -270,7 +272,6 @@ export class ReportService {
         throw ApiError.notFound(`Doctor with ID ${doctorId} not found`);
       }
 
-      // Create report
       const id = uuidv4();
       const now = new Date();
 
@@ -288,7 +289,6 @@ export class ReportService {
         updatedAt: now,
       });
 
-      // If status is finalized, create notification
       if (status === "finalized") {
         await NotificationService.createNotification({
           userId: doctorId,
@@ -495,9 +495,8 @@ export class ReportService {
         .from(user)
         .where(eq(user.id, doctorId));
 
-      if (!doctorExists) {
-        throw ApiError.notFound(`Doctor with ID ${doctorId} not found`);
-      }
+      if (!doctorExists)
+        throw ApiError.notFound(`Docteur with ID ${doctorId} not found`);
 
       // Generate report content based on type
       let title = "";
@@ -578,25 +577,39 @@ export class ReportService {
   private static async generateMedicalSummary(
     patientId: string
   ): Promise<string> {
-    return `# Medical Summary
+    const patient = await PatientService.getPatientById(patientId);
+    const prompt = `
+You are a medical AI assistant. Based on the provided patient object, generate a structured medical summary in markdown format.
+
+The format must follow this structure exactly:
+
+# Medical Summary
 
 ## Patient Information
-This is an automatically generated medical summary for the patient.
+- Start with: "This is an automatically generated medical summary for the patient."
 
 ## Medical History
-- Patient has a history of chronic kidney disease
-- Regular follow-up appointments have been maintained
+- Mention relevant historical conditions if available
+- If none, say: "No significant medical history reported."
 
 ## Current Status
-- Patient is currently stable
-- Medication regimen is being followed as prescribed
+- Indicate current kidney status using the stage and status fields
+- Compare current DFG and proteinuria to previous values
+- Mention current treatments if provided
 
 ## Recommendations
-- Continue current treatment plan
-- Schedule follow-up appointment in 3 months
-- Monitor kidney function with regular lab tests
+- Suggest a general follow-up plan based on the next visit date
+- Recommend monitoring kidney function with lab tests
+- Reinforce treatment adherence
 
-*This report was automatically generated and requires review by a healthcare professional.*`;
+Close the summary with the following disclaimer:
+*This report was automatically generated and requires review by a healthcare professional.*
+
+Here is the patient data:
+${typeof patient === "string" ? patient : JSON.stringify(patient, null, 2)}
+`;
+
+    return await callGeminiAI<string>(prompt);
   }
 
   /**
@@ -605,27 +618,33 @@ This is an automatically generated medical summary for the patient.
   private static async generateLabResultsReport(
     patientId: string
   ): Promise<string> {
-    return `# Lab Results Report
+    const { data: labResults } =
+      await LabResultsService.getLabResults(patientId);
 
-## Test Results
-| Test | Result | Reference Range | Status |
-|------|--------|----------------|--------|
-| Creatinine | 1.2 mg/dL | 0.7-1.3 mg/dL | Normal |
-| eGFR | 65 mL/min | >60 mL/min | Normal |
-| BUN | 18 mg/dL | 7-20 mg/dL | Normal |
-| Potassium | 4.5 mEq/L | 3.5-5.0 mEq/L | Normal |
-| Sodium | 140 mEq/L | 135-145 mEq/L | Normal |
-| Phosphorus | 3.5 mg/dL | 2.5-4.5 mg/dL | Normal |
-| Calcium | 9.5 mg/dL | 8.5-10.5 mg/dL | Normal |
+    const prompt = `
+  You are a medical AI assistant. Based on the provided lab results, generate a structured lab results report in markdown format.
+  
+  ### Lab Results Data (as JSON)
+  ${typeof labResults === "string" ? labResults : JSON.stringify(labResults, null, 2)}
+  
+  The markdown report should have the following format:
+  
+  # Lab Results Report
+  
+  ## Test Results
+  Include a table with columns: Test | Result | Reference Range | Status (e.g., Normal/High/Low)
+  
+  ## Interpretation
+  Provide a summary of the patient's kidney function and overall condition based on the results.
+  
+  ## Recommendations
+  Provide general recommendations based on the interpretation, such as continuing monitoring, treatment changes, etc.
+  
+  Conclude with:
+  *This report was automatically generated and requires review by a healthcare professional.*
+  `;
 
-## Interpretation
-Overall, the lab results are within normal ranges, indicating stable kidney function.
-
-## Recommendations
-- Continue current monitoring schedule
-- No immediate changes to treatment plan required
-
-*This report was automatically generated and requires review by a healthcare professional.*`;
+    return await callGeminiAI<string>(prompt);
   }
 
   /**
@@ -634,29 +653,38 @@ Overall, the lab results are within normal ranges, indicating stable kidney func
   private static async generateTreatmentPlan(
     patientId: string
   ): Promise<string> {
-    return `# Treatment Plan
+    const { data: treatments } =
+      await TreatmentService.getTreatments(patientId);
 
-## Current Medications
-1. Medication A - 10mg daily
-2. Medication B - 25mg twice daily
-3. Medication C - 5mg as needed for symptoms
+    const prompt = `
+  You are a medical AI assistant. Based on the provided active treatments for a patient, generate a structured treatment plan in markdown format.
+  
+  ### Input Treatment Data (JSON)
 
-## Dietary Recommendations
-- Low sodium diet (<2g sodium per day)
-- Moderate protein intake (0.8g/kg body weight)
-- Adequate hydration (2L of water daily)
+  ${typeof treatments === "string" ? treatments : JSON.stringify(treatments, null, 2)}
 
-## Lifestyle Modifications
-- Regular physical activity (30 minutes, 5 days per week)
-- Blood pressure monitoring at home
-- Weight management
+  
+  Your response must follow this exact markdown structure:
+  
+  # Treatment Plan
+  
+  ## Current Medications
+  - List each medication with its dosage and frequency.
+  
+  ## Dietary Recommendations
+  - Provide general recommendations for patients with chronic kidney disease (or relevant condition if you can infer it from the treatments).
+  
+  ## Lifestyle Modifications
+  - Include physical activity, monitoring, or behavioral habits relevant to the condition.
+  
+  ## Follow-up Schedule
+  - Provide a generic follow-up schedule: next appointment, lab tests, and specialist review.
+  
+  Conclude with:
+  *This treatment plan was automatically generated and requires review by a healthcare professional.*
+  `;
 
-## Follow-up Schedule
-- Next appointment: In 3 months
-- Lab tests: Every 3 months
-- Specialist consultation: As needed
-
-*This treatment plan was automatically generated and requires review by a healthcare professional.*`;
+    return await callGeminiAI<string>(prompt);
   }
 
   /**

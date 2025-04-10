@@ -82,7 +82,7 @@ export default function Sidebar({ mobile = false }: SidebarProps) {
               href={route.href}
               className={cn(
                 "text-sm group flex p-3 w-full justify-start font-medium cursor-pointer hover:text-primary hover:bg-primary/10 rounded-lg transition",
-                pathname === route.href
+                pathname.startsWith(route.href)
                   ? "text-primary bg-primary/10"
                   : "text-muted-foreground"
               )}

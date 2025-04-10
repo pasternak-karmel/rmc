@@ -1,4 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import { sendNotificationEmail } from "@/action/send-notification";
 import { db } from "@/db";
 import { appointments, patient, reports, scheduledTasks } from "@/db/schema";
 import { ApiError } from "@/lib/api-error";
@@ -26,7 +27,6 @@ export class ScheduledTaskService {
           )
         )
         .limit(50);
-
 
       for (const task of dueTasks) {
         try {
@@ -139,8 +139,6 @@ export class ScheduledTaskService {
         throw new Error(`Appointment with ID ${appointmentId} not found`);
       }
 
-      
-
       // Create notification for doctor
       await NotificationService.createNotification({
         userId: doctorId,
@@ -164,7 +162,6 @@ export class ScheduledTaskService {
 
       return { success: true, message: "Appointment confirmation sent" };
     } catch (error) {
-      console.error("Error in processAppointmentConfirmation:", error);
       throw error;
     }
   }
@@ -201,6 +198,14 @@ export class ScheduledTaskService {
     //   `Sending appointment reminder email to ${appointment?.patient?.email}`
     // );
 
+    await sendNotificationEmail({
+      to: appointment?.patient?.email || "",
+      subject: "Reminder: Appointment",
+      notificationTitle: "Appointment Reminder Sent",
+      notificationContent: `Reminder for appointment with ${appointment?.patient?.firstname} ${appointment?.patient?.lastname} tomorrow at ${new Date(appointment.date).toLocaleTimeString()} has been sent`,
+      appName: "HealthCare",
+    });
+
     // Create notification for doctor
     await NotificationService.createNotification({
       userId: doctorId,
@@ -229,7 +234,8 @@ export class ScheduledTaskService {
    * Process report sending task
    */
   private static async processReportSending(task: any) {
-    const data = JSON.parse(task.data);
+    const data =
+      typeof task.data === "string" ? JSON.parse(task.data) : task.data;
     const { reportId, patientId, doctorId } = data;
 
     // Get report details
@@ -254,6 +260,14 @@ export class ScheduledTaskService {
 
     // In a real implementation, this would send an email to the patient
     // console.log(`Sending report to ${report.patient.email}`);
+
+    await sendNotificationEmail({
+      to: report?.patient?.email || "",
+      subject: "Report",
+      notificationTitle: "Report Sent to Patient",
+      notificationContent: `Report "${report.title}" has been sent to ${report?.patient?.firstname} ${report?.patient?.lastname}`,
+      appName: "HealthCare",
+    });
 
     // Create notification for doctor
     await NotificationService.createNotification({
@@ -301,7 +315,6 @@ export class ScheduledTaskService {
     if (!patientData) {
       throw new Error(`Patient with ID ${patientId} not found`);
     }
-
 
     // Create notification for doctor
     await NotificationService.createNotification({

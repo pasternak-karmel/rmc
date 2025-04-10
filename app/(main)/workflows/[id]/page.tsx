@@ -22,7 +22,6 @@ import {
   ClipboardList,
   Clock,
   PlusCircle,
-  Settings,
   Users,
 } from "lucide-react";
 import Link from "next/link";
@@ -45,14 +44,14 @@ export default function WorkflowDetailsPage(props: { params: Params }) {
           </Button>
         </Link>
         <h1 className="text-3xl font-bold tracking-tight">{workflow?.title}</h1>
-        <div className="ml-auto">
+        {/* <div className="ml-auto">
           <Link href={`/workflows/${params.id}/parametres`}>
             <Button variant="outline">
               <Settings className="mr-2 h-4 w-4" />
               Paramètres
             </Button>
           </Link>
-        </div>
+        </div> */}
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
