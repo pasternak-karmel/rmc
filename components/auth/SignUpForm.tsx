@@ -155,7 +155,7 @@ export default function SignUpForm() {
             className="w-full cursor-pointer"
             onClick={handleGoogleLogin}
           >
-            S'inscrire avec Google
+            S&apos;inscrire avec Google
           </Button>
 
           <div className="text-center text-sm">
