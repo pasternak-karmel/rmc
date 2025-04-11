@@ -16,12 +16,12 @@ import { useState } from "react";
 
 interface DeletePatientDialogProps {
   patientId: string;
-  onClose: () => void;
+  // onClose?: () => void;
 }
 
 export function DeletePatientDialog({
   patientId,
-  onClose,
+  // onClose,
 }: DeletePatientDialogProps) {
   const [open, setOpen] = useState(false);
   const { mutate: deletePatient, isPending } = useDeletePatient({
@@ -31,14 +31,14 @@ export function DeletePatientDialog({
   const handleDelete = () => {
     deletePatient(patientId);
     setOpen(false);
-    onClose();
+    // onClose?.();
   };
 
   const handleDialogChange = (isOpen: boolean) => {
     setOpen(isOpen);
-    if (!isOpen) {
-      onClose();
-    }
+    // if (!isOpen) {
+    //   if (onClose) onClose();
+    // }
   };
 
   return (

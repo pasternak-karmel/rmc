@@ -316,7 +316,7 @@ export function PatientList({
       {patientToDelete && (
         <DeletePatientDialog
           patientId={patientToDelete}
-          onClose={() => setPatientToDelete(null)}
+          // onClose={() => setPatientToDelete(null)}
         />
       )}
     </Card>
