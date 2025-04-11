@@ -25,7 +25,6 @@ type NotificationInput = z.infer<typeof NotificationSchema>;
 
 export async function sendNotificationEmail(input: NotificationInput) {
   try {
-    // Validate input
     const validationResult = NotificationSchema.safeParse(input);
     if (!validationResult.success) {
       return {
@@ -37,7 +36,6 @@ export async function sendNotificationEmail(input: NotificationInput) {
 
     const notificationPayload = validationResult.data;
 
-    // Check if Resend API key is configured
     if (!process.env.RESEND_API_KEY) {
       console.error("RESEND_API_KEY environment variable is not set");
       return {
