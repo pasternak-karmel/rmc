@@ -2,6 +2,7 @@
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { signIn } from "@/lib/auth-client";
 import { cn } from "@/lib/utils";
 import { DEFAULT_LOGIN_REDIRECT } from "@/routes";
 import { LoginSchema } from "@/schemas";
@@ -20,10 +21,8 @@ import {
   FormLabel,
   FormMessage,
 } from "../ui/form";
-import { createAuthClient } from "better-auth/client";
 
 export default function SignInForm() {
-  const authClient = createAuthClient();
   const router = useRouter();
   const searchParams = useSearchParams();
   const callbackUrl = searchParams.get("callbackUrl");
@@ -61,7 +60,7 @@ export default function SignInForm() {
 
   const handleGoogleLogin = () => {
     startTransition(async () => {
-      await authClient.signIn.social({
+      await signIn.social({
         provider: "google",
       });
     });

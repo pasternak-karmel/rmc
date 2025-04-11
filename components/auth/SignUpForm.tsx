@@ -12,6 +12,7 @@ import {
 import { cn } from "@/lib/utils";
 
 import { Input } from "@/components/ui/input";
+import { signIn } from "@/lib/auth-client";
 import { LOGIN_URL } from "@/routes";
 import { RegisterSchema } from "@/schemas";
 import { register } from "@/server/register";
@@ -35,6 +36,14 @@ export default function SignUpForm() {
       confirmPassword: "",
     },
   });
+
+  const handleGoogleLogin = () => {
+    startTransition(async () => {
+      await signIn.social({
+        provider: "google",
+      });
+    });
+  };
 
   const onSubmit = (values: z.infer<typeof RegisterSchema>) => {
     startTransition(() => {
@@ -64,7 +73,7 @@ export default function SignUpForm() {
         <div className="flex flex-col items-center gap-2 text-center">
           <h1 className="text-2xl font-bold">Créer un compte</h1>
           <p className="text-muted-foreground text-sm">
-          Saisissez vos coordonnées  pour vous inscrire
+            Saisissez vos coordonnées pour vous inscrire
           </p>
         </div>
 
@@ -92,7 +101,11 @@ export default function SignUpForm() {
               <FormItem>
                 <FormLabel>Email</FormLabel>
                 <FormControl>
-                  <Input {...field} placeholder="john.doe@example.com" type="email" />
+                  <Input
+                    {...field}
+                    placeholder="john.doe@example.com"
+                    type="email"
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -133,8 +146,23 @@ export default function SignUpForm() {
             {isPending ? "Inscription en cours..." : "S'inscrire"}
           </Button>
 
+          <div className="relative flex items-center text-sm text-muted-foreground">
+            <div className="absolute inset-0 h-[1px] bg-border" />
+          </div>
+
+          <Button
+            variant="outline"
+            className="w-full cursor-pointer"
+            onClick={handleGoogleLogin}
+          >
+            S'inscrire avec Google
+          </Button>
+
           <div className="text-center text-sm">
-          Vous avez déjà un compte ? <a href="/auth/sign-in" className="underline underline-offset-4">Se connecter</a>
+            Vous avez déjà un compte ?{" "}
+            <a href="/auth/sign-in" className="underline underline-offset-4">
+              Se connecter
+            </a>
           </div>
         </div>
       </form>
