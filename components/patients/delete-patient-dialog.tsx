@@ -16,13 +16,9 @@ import { useState } from "react";
 
 interface DeletePatientDialogProps {
   patientId: string;
-  // onClose?: () => void;
 }
 
-export function DeletePatientDialog({
-  patientId,
-  // onClose,
-}: DeletePatientDialogProps) {
+export function DeletePatientDialog({ patientId }: DeletePatientDialogProps) {
   const [open, setOpen] = useState(false);
   const { mutate: deletePatient, isPending } = useDeletePatient({
     redirectTo: "/patients",
@@ -31,14 +27,10 @@ export function DeletePatientDialog({
   const handleDelete = () => {
     deletePatient(patientId);
     setOpen(false);
-    // onClose?.();
   };
 
   const handleDialogChange = (isOpen: boolean) => {
     setOpen(isOpen);
-    // if (!isOpen) {
-    //   if (onClose) onClose();
-    // }
   };
 
   return (
