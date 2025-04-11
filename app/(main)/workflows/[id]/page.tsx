@@ -9,6 +9,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { PatientSelectionModal } from "@/components/workflows/patient-selection-modal";
 import { WorkflowAlerts } from "@/components/workflows/workflow-alerts";
 import { WorkflowPatients } from "@/components/workflows/workflow-patients";
 import { WorkflowTasks } from "@/components/workflows/workflow-tasks";
@@ -25,7 +26,7 @@ import {
   Users,
 } from "lucide-react";
 import Link from "next/link";
-import { use } from "react";
+import { use, useState } from "react";
 
 type Params = Promise<{ id: string }>;
 
@@ -35,8 +36,38 @@ export default function WorkflowDetailsPage(props: { params: Params }) {
 
   const { data: workflow } = useFetchWorkflow(id);
 
+  const [isModalOpen, setModalOpen] = useState(false);
+
+  const handleOpenModal = () => {
+    setModalOpen(true);
+  };
+
+  const handleCloseModal = () => {
+    setModalOpen(false);
+  };
+
+  const handlePatientSelection = (patient: {id: string, name: string}) => {
+    fetch(`/api/workflow/${id}/patients/get`, {
+      method: "POST",
+      body: JSON.stringify({ patientId: patient.id }),
+      headers: {
+        "Content-Type": "application/json",
+      },
+    })
+      .then(() => {
+        location.reload(); //TODO: Karmel, you can optimize this
+      })
+      .catch((err) => console.error("Error adding patient:", err));
+  };
+
   return (
     <div className="flex flex-col gap-6">
+      <PatientSelectionModal
+        workflowId={id}
+        isOpen={isModalOpen}
+        onClose={handleCloseModal}
+        onSelectPatient={handlePatientSelection}
+      />
       <div className="flex items-center gap-2">
         <Link href="/workflows">
           <Button variant="ghost" size="icon">
@@ -44,14 +75,6 @@ export default function WorkflowDetailsPage(props: { params: Params }) {
           </Button>
         </Link>
         <h1 className="text-3xl font-bold tracking-tight">{workflow?.title}</h1>
-        {/* <div className="ml-auto">
-          <Link href={`/workflows/${params.id}/parametres`}>
-            <Button variant="outline">
-              <Settings className="mr-2 h-4 w-4" />
-              Paramètres
-            </Button>
-          </Link>
-        </div> */}
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
@@ -138,7 +161,7 @@ export default function WorkflowDetailsPage(props: { params: Params }) {
                   Liste des patients suivis avec ce workflow
                 </CardDescription>
               </div>
-              <Button size="sm">
+              <Button size="sm" onClick={handleOpenModal}>
                 <PlusCircle className="mr-2 h-4 w-4" />
                 Ajouter un patient
               </Button>
@@ -159,10 +182,10 @@ export default function WorkflowDetailsPage(props: { params: Params }) {
                 </CardDescription>
               </div>
               <Link href={`/tasks/nouveau?redirectTo=/workflows/${params.id}`}>
-              <Button size="sm">
-                <PlusCircle className="mr-2 h-4 w-4" />
-                Nouvelle tâche
-              </Button>
+                <Button size="sm">
+                  <PlusCircle className="mr-2 h-4 w-4" />
+                  Nouvelle tâche
+                </Button>
               </Link>
             </CardHeader>
             <CardContent>

@@ -4,10 +4,12 @@ import { CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useDashboard } from "@/hooks/use-dashboard";
 import { useEffect, useRef } from "react";
+import { useTheme } from "next-themes";
 
 export function StageDistribution() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const { data: stats, isLoading, error } = useDashboard();
+  const { theme } = useTheme();
 
   useEffect(() => {
     if (isLoading || error || !stats) return;
@@ -36,6 +38,8 @@ export function StageDistribution() {
 
     const radius = Math.min(canvas.width, canvas.height) / 2.5;
 
+    const textColor = theme === "dark" ? "white" : "black";
+
     for (let i = 0; i < stages.length; i++) {
       const sliceAngle = (stageCounts[i] / stats.totalPatients) * 2 * Math.PI;
       ctx.beginPath();
@@ -49,7 +53,7 @@ export function StageDistribution() {
       const labelY = centerY + radius * 1.1 * Math.sin(midAngle);
 
       // Draw label
-      ctx.fillStyle = "black";
+      ctx.fillStyle = textColor;
       ctx.font = "12px sans-serif";
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
@@ -57,7 +61,7 @@ export function StageDistribution() {
 
       startAngle += sliceAngle;
     }
-  }, [stats, isLoading, error]);
+  }, [stats, isLoading, error, theme]);
 
   if (isLoading) {
     return <Skeleton className="h-[200px] w-full" />;

@@ -11,11 +11,11 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { signOut, useSession } from "@/lib/auth-client";
+import { useLoader } from "@/provider/LoaderContext";
 import { LogOut, Settings, User } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { useLoader } from "@/provider/LoaderContext";
 
 export function AuthStatus() {
   const { data: session, isPending } = useSession();

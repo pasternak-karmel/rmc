@@ -149,7 +149,6 @@ export function PatientList({
               </TableHeader>
               <TableBody>
                 {data?.data.map((patient) => {
-                  // Calculate age from birthdate
                   const birthdate = new Date(patient.birthdate);
                   const today = new Date();
                   let age = today.getFullYear() - birthdate.getFullYear();
@@ -159,7 +158,6 @@ export function PatientList({
                       today.getDate() >= birthdate.getDate());
                   if (!hasBirthdayPassed) age--;
 
-                  // Format date
                   const formatDate = (dateString: string) => {
                     try {
                       const date = new Date(dateString);
@@ -318,7 +316,7 @@ export function PatientList({
       {patientToDelete && (
         <DeletePatientDialog
           patientId={patientToDelete}
-          // onClose={() => setPatientToDelete(null)}
+          onClose={() => setPatientToDelete(null)}
         />
       )}
     </Card>

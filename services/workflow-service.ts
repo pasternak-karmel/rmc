@@ -12,7 +12,7 @@ import { auth } from "@/lib/auth";
 import { withCache } from "@/lib/cache";
 import { calculateAge, formatDate } from "@/lib/utils";
 import { CreateWorkflowInput, WorkflowQueryParams } from "@/schemas/workflow";
-import { and, asc, desc, eq, ilike, or, sql } from "drizzle-orm";
+import { and, asc, desc, eq, ilike, isNull, ne, or, sql } from "drizzle-orm";
 import { headers } from "next/headers";
 import { v4 as uuidv4 } from "uuid";
 
@@ -250,7 +250,7 @@ export class WorkflowService {
         })
         .from(workflowPatient)
         .innerJoin(patient, eq(patient.id, workflowPatient.patientId))
-        .innerJoin(infoMedical, eq(infoMedical.patientId, patient.id))
+        .leftJoin(infoMedical, eq(infoMedical.patientId, patient.id))
         .where(eq(workflowPatient.workflowId, id));
 
       if (!result) {
@@ -282,6 +282,36 @@ export class WorkflowService {
         })
       );
       return data;
+    });
+  }
+
+  static getPatientsNotInWorkflow(id: string) {
+    const cacheKey = `workflows-patients-not-in-workflow:${id}`;
+    return withCache(cacheKey, async () => {
+      const result = await db
+        .select(
+          {
+          id: patient.id,
+          name: sql<string>`${patient.firstname} || ' ' || ${patient.lastname}`,
+        }
+      )
+        .from(patient)
+        .leftJoin(workflowPatient, and(
+          eq(workflowPatient.patientId, patient.id),
+          eq(workflowPatient.workflowId, id)
+        ))
+        .where(
+          or(
+            ne(workflowPatient.workflowId, id),
+            isNull(workflowPatient.workflowId),
+          )
+        )
+
+      if (!result) {
+        throw ApiError.notFound(`Workflow with ID ${id} not found`);
+      }
+
+      return result;
     });
   }
 
@@ -431,5 +461,72 @@ export class WorkflowService {
 
     // const workflow = await db.workflow.create(data);
     // return workflow;
+  }
+
+  static async addPatientToWorkflow(id: string, patientId: string) {
+    try {
+      const medecin = await auth.api.getSession({
+        headers: await headers(),
+      });
+
+      if (!medecin || !medecin.user) {
+        throw ApiError.unauthorized(
+          "Vous devez être connecté pour créer un workflow"
+        );
+      }
+
+      const existingWorkflow = await db
+        .select()
+        .from(workflow)
+        .where(eq(workflow.id, id))
+        .limit(1);
+
+      if (existingWorkflow.length == 0) {
+        throw ApiError.conflict("Le workflow n'existe déjà");
+      }
+
+      const existingPatient = await db
+        .select()
+        .from(patient)
+        .where(eq(patient.id, patientId))
+        .limit(1);
+
+      if (existingPatient.length == 0) {
+        throw ApiError.conflict("Le patient n'existe déjà");
+      }
+
+      const existingWorkflowPatient = await db
+        .select()
+        .from(workflowPatient)
+        .where(
+          and(
+            eq(workflowPatient.workflowId, id),
+            eq(workflowPatient.patientId, patientId)
+          )
+        )
+        .limit(1);
+
+      if (existingWorkflowPatient.length > 0) {
+        throw ApiError.conflict("Le patient est déjà dans le workflow");
+      }
+
+      const [insertedWorkflowPatient] = await db
+        .insert(workflowPatient)
+        .values({
+          id: uuidv4(),
+          workflowId: id,
+          patientId,
+        })
+        .returning();
+
+        return insertedWorkflowPatient;
+    } catch (error) {
+      console.log(error);
+      if (error instanceof ApiError) {
+        throw error;
+      }
+
+      throw ApiError.internalServer("Erreur lors de la création du workflow");
+    }
   }
 }

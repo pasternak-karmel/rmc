@@ -45,7 +45,7 @@ export default function PatientDetailsPage(props: { params: Params }) {
               Modifier
             </Button>
           </Link>
-          <DeletePatientDialog patientId={params.id} />
+          <DeletePatientDialog patientId={params.id} onClose={() => {}} />
           <Link href={`/patients/${params.id}/analyse`}>
             <Button variant="outline">
               <Edit className="mr-2 h-4 w-4" />
